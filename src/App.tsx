@@ -2,14 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { ServOSProvider, useServOS } from './context/ServOSContext';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
+import { CommandCentreView } from './components/command/CommandCentreView';
 import { POSView } from './components/pos/POSView';
 import { KDSView } from './components/kds/KDSView';
 import { HotelPMSView } from './components/hotel/HotelPMSView';
+import { CatalogStudioView } from './components/catalog/CatalogStudioView';
+import { CRM360View } from './components/crm/CRM360View';
+import { EventsNightlifeView } from './components/events/EventsNightlifeView';
 import { InventoryView } from './components/inventory/InventoryView';
 import { ProcurementView } from './components/procurement/ProcurementView';
 import { AccountingView } from './components/accounting/AccountingView';
 import { ControlEngineView } from './components/control/ControlEngineView';
 import { StaffCashView } from './components/staff/StaffCashView';
+import { SettingsCenterView } from './components/settings/SettingsCenterView';
 import { EdgeHardwareModal } from './components/edge/EdgeHardwareModal';
 import { ToastContainer } from './components/common/ToastContainer';
 import { WifiOff, Database, RefreshCw, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
@@ -97,12 +102,20 @@ const MainApp: React.FC = () => {
     }
 
     switch (activeTab) {
+      case 'command':
+        return <CommandCentreView />;
       case 'pos':
         return <POSView />;
       case 'kds':
         return <KDSView />;
       case 'hotel':
         return <HotelPMSView />;
+      case 'catalog':
+        return <CatalogStudioView />;
+      case 'crm':
+        return <CRM360View />;
+      case 'events':
+        return <EventsNightlifeView />;
       case 'inventory':
         return <InventoryView />;
       case 'procurement':
@@ -113,6 +126,8 @@ const MainApp: React.FC = () => {
         return <ControlEngineView />;
       case 'staff':
         return <StaffCashView />;
+      case 'settings':
+        return <SettingsCenterView />;
       default:
         return <POSView />;
     }

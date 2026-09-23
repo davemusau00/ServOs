@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useServOS } from '../../context/ServOSContext';
 import { ProductSellable, RestaurantTable, OrderItem, Order } from '../../types/servos';
 import { ThermalReceiptModal } from './ThermalReceiptModal';
+import { MixedTenderModal } from './MixedTenderModal';
+import { RefundModal } from './RefundModal';
+import { TableMergeModal } from './TableMergeModal';
 import { 
   Wine, 
   Beer, 
@@ -29,7 +32,10 @@ import {
   Users,
   ChevronRight,
   Receipt,
-  Utensils
+  Utensils,
+  GitMerge,
+  RotateCcw,
+  Split
 } from 'lucide-react';
 
 export const POSView: React.FC = () => {
@@ -68,6 +74,11 @@ export const POSView: React.FC = () => {
   const [activeModifierProduct, setActiveModifierProduct] = useState<ProductSellable | null>(null);
   const [selectedModifiers, setSelectedModifiers] = useState<string[]>([]);
   const [selectedMixers, setSelectedMixers] = useState<string[]>([]);
+
+  // Advanced POS Modals
+  const [isMixedTenderOpen, setIsMixedTenderOpen] = useState<boolean>(false);
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState<boolean>(false);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState<boolean>(false);
 
   // Payment checkout modal
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
@@ -503,6 +514,24 @@ export const POSView: React.FC = () => {
                 className="p-1.5 text-slate-400 hover:text-amber-400 rounded hover:bg-slate-800"
               >
                 <Users className="w-4 h-4" />
+              </button>
+
+              {/* Table / Check Merge */}
+              <button
+                onClick={() => setIsMergeModalOpen(true)}
+                title="Merge with another table / tab check"
+                className="p-1.5 text-slate-400 hover:text-amber-400 rounded hover:bg-slate-800"
+              >
+                <GitMerge className="w-4 h-4" />
+              </button>
+
+              {/* Refund / Item Return */}
+              <button
+                onClick={() => setIsRefundModalOpen(true)}
+                title="Issue Itemized Refund / Credit Note"
+                className="p-1.5 text-slate-400 hover:text-amber-400 rounded hover:bg-slate-800"
+              >
+                <RotateCcw className="w-4 h-4" />
               </button>
 
               {/* Print Pro-Forma Bill Check */}
@@ -1340,6 +1369,17 @@ export const POSView: React.FC = () => {
                     <CreditCard className="w-4 h-4" />
                     <span>Card</span>
                   </button>
+
+                  <button
+                    onClick={() => {
+                      setIsCheckoutOpen(false);
+                      setIsMixedTenderOpen(true);
+                    }}
+                    className="py-2 px-1 text-xs font-semibold rounded flex flex-col items-center gap-1 transition-colors text-purple-400 hover:bg-purple-950/40 border border-purple-500/30"
+                  >
+                    <Split className="w-4 h-4" />
+                    <span>Mixed/Split</span>
+                  </button>
                 </div>
 
                 {/* Tab Specific Content */}
@@ -1501,6 +1541,27 @@ export const POSView: React.FC = () => {
         order={receiptModalOrder}
         isProForma={receiptIsProForma}
         paymentDetails={receiptPaymentDetails}
+      />
+
+      {/* MIXED / SPLIT TENDER MODAL */}
+      <MixedTenderModal
+        isOpen={isMixedTenderOpen}
+        onClose={() => setIsMixedTenderOpen(false)}
+        order={activeOrder}
+      />
+
+      {/* REFUND / ITEM RETURN MODAL */}
+      <RefundModal
+        isOpen={isRefundModalOpen}
+        onClose={() => setIsRefundModalOpen(false)}
+        order={activeOrder}
+      />
+
+      {/* TABLE / CHECK MERGE MODAL */}
+      <TableMergeModal
+        isOpen={isMergeModalOpen}
+        onClose={() => setIsMergeModalOpen(false)}
+        currentTableId={activeTable?.id}
       />
     </div>
   );

@@ -1,15 +1,19 @@
 import React from 'react';
 import { useServOS } from '../../context/ServOSContext';
 import { 
+  LayoutDashboard,
   Utensils, 
   Flame, 
   Bed, 
   Boxes, 
+  SlidersHorizontal,
+  Users,
+  Calendar,
   FileSpreadsheet, 
   Receipt, 
   ShieldAlert, 
-  Coins, 
-  Users,
+  UserCheck, 
+  Settings,
   ChevronLeft, 
   ChevronRight, 
   PanelLeftClose, 
@@ -51,14 +55,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const totalControlAlerts = openAlertsCount + pendingApprovalsCount;
 
   const allNavLinks = [
+    { id: 'command', label: 'Command Centre', icon: LayoutDashboard, desc: 'Live revenue, occupancy & alerts' },
     { id: 'pos', label: 'POS & Tables', icon: Utensils, desc: 'Floorplan, tabs & checkout' },
     { id: 'kds', label: 'KDS Pass', icon: Flame, desc: 'Kitchen & bar prep stations' },
-    { id: 'hotel', label: 'Hotel PMS', icon: Bed, desc: 'Rooms, folios & minibar' },
+    { id: 'hotel', label: 'Hotel PMS', icon: Bed, desc: 'Tape chart, rooms & housekeeping' },
+    { id: 'catalog', label: 'Catalog Studio', icon: SlidersHorizontal, desc: 'Portions, yields & price books' },
+    { id: 'crm', label: 'Guest 360 & Loyalty', icon: Users, desc: 'Customer profiles & rewards' },
+    { id: 'events', label: 'Events & Nightlife', icon: Calendar, desc: 'Door scanner & promoters' },
     { id: 'inventory', label: 'Inventory & Yield', icon: Boxes, desc: 'Spirits yield & stock depletion' },
     { id: 'procurement', label: 'Procurement & AP', icon: FileSpreadsheet, desc: 'POs, GRN & 3-way match' },
-    { id: 'accounting', label: 'Accounting & eTIMS', icon: Receipt, desc: 'Double-entry & KRA fiscal' },
+    { id: 'accounting', label: 'Accounting & eTIMS', icon: Receipt, desc: 'Double-entry & reconciliation' },
     { id: 'control', label: 'Control & Audit', icon: ShieldAlert, desc: 'Anomalies & approvals' },
-    { id: 'staff', label: 'Staff & HR Hub', icon: Users, desc: 'Payroll, leave, shifts & till' }
+    { id: 'staff', label: 'Staff & HR Hub', icon: UserCheck, desc: 'Payroll, leave, shifts & till' },
+    { id: 'settings', label: 'Settings & Admin', icon: Settings, desc: 'Multi-property, RBAC & eTIMS' }
   ];
 
   const visibleNavLinks = allNavLinks.filter(link => isTabAllowed(link.id));

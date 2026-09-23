@@ -18,8 +18,14 @@ import {
   Smartphone,
   Coins,
   ShieldCheck,
-  X
+  X,
+  Calendar,
+  Wrench
 } from 'lucide-react';
+import { HotelTapeChart } from './HotelTapeChart';
+import { HousekeepingBoard } from './HousekeepingBoard';
+import { MaintenanceWorkspace } from './MaintenanceWorkspace';
+import { DedicatedCheckInModal } from './DedicatedCheckInModal';
 
 export const HotelPMSView: React.FC = () => {
   const {
@@ -32,6 +38,8 @@ export const HotelPMSView: React.FC = () => {
     showToast
   } = useServOS();
 
+  const [activeTab, setActiveTab] = useState<'ROOM_BOARD' | 'TAPE_CHART' | 'HOUSEKEEPING' | 'MAINTENANCE'>('ROOM_BOARD');
+  const [checkInModalOpen, setCheckInModalOpen] = useState<boolean>(false);
   const [selectedRoom, setSelectedRoom] = useState<HotelRoom | null>(null);
   const [activeFolioModal, setActiveFolioModal] = useState<GuestFolio | null>(null);
   const [minibarCounts, setMinibarCounts] = useState<Record<string, number>>({});
@@ -87,108 +95,182 @@ export const HotelPMSView: React.FC = () => {
   return (
     <div className="flex-1 h-full min-h-0 flex flex-col bg-slate-950 overflow-hidden">
       {/* Top Controls Header */}
-      <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+      <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <Bed className="w-5 h-5 text-amber-400 shrink-0" />
             <span>Hotel Property Management System (PMS)</span>
           </h2>
           <p className="text-xs text-slate-400 font-mono mt-0.5">
-            Reservations, Guest Stays, Folio Subledgers & Housekeeping
+            Reservations, Tape Chart, Housekeeping Turnover & Engineering
           </p>
         </div>
 
-        {/* Status filters */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 shrink-0">
-          {['ALL', 'AVAILABLE', 'OCCUPIED', 'DIRTY', 'CLEANING', 'OUT_OF_ORDER'].map(st => (
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Sub-view switcher */}
+          <div className="flex items-center bg-slate-850 p-1 rounded-xl border border-slate-750 text-xs font-mono">
             <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
-                statusFilter === st
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-750'
+              onClick={() => setActiveTab('ROOM_BOARD')}
+              className={`px-3 py-1.5 rounded-lg transition-colors font-bold ${
+                activeTab === 'ROOM_BOARD' ? 'bg-slate-750 text-amber-300 shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {st}
+              Rooms & Folios
             </button>
-          ))}
+            <button
+              onClick={() => setActiveTab('TAPE_CHART')}
+              className={`px-3 py-1.5 rounded-lg transition-colors font-bold ${
+                activeTab === 'TAPE_CHART' ? 'bg-slate-750 text-amber-300 shadow-xs' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Tape Chart
+            </button>
+            <button
+              onClick={() => setActiveTab('HOUSEKEEPING')}
+              className={`px-3 py-1.5 rounded-lg transition-colors font-bold ${
+                activeTab === 'HOUSEKEEPING' ? 'bg-slate-750 text-amber-300 shadow-xs' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Housekeeping
+            </button>
+            <button
+              onClick={() => setActiveTab('MAINTENANCE')}
+              className={`px-3 py-1.5 rounded-lg transition-colors font-bold ${
+                activeTab === 'MAINTENANCE' ? 'bg-slate-750 text-amber-300 shadow-xs' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Maintenance
+            </button>
+          </div>
+
+          <button
+            onClick={() => setCheckInModalOpen(true)}
+            className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-all font-mono"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Check-In Wizard</span>
+          </button>
         </div>
       </div>
 
+      {/* Viewport Content */}
+      {activeTab === 'TAPE_CHART' && (
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8">
+          <HotelTapeChart onNewBooking={() => setCheckInModalOpen(true)} />
+        </div>
+      )}
+
+      {activeTab === 'HOUSEKEEPING' && (
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8">
+          <HousekeepingBoard />
+        </div>
+      )}
+
+      {activeTab === 'MAINTENANCE' && (
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8">
+          <MaintenanceWorkspace />
+        </div>
+      )}
+
       {/* Main Content: Rooms Grid */}
-      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredRooms.map(room => {
-            const stay = room.currentGuestStayId ? guestStays.find(s => s.id === room.currentGuestStayId) : null;
-            const folio = stay ? guestFolios.find(f => f.id === stay.folioId) : null;
-
-            return (
-              <div
-                key={room.id}
-                className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col justify-between hover:border-slate-700 transition-all shadow-md group"
+      {activeTab === 'ROOM_BOARD' && (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="px-4 sm:px-6 py-2 bg-slate-900/50 border-b border-slate-850 flex items-center gap-1.5 overflow-x-auto shrink-0">
+            {['ALL', 'AVAILABLE', 'OCCUPIED', 'DIRTY', 'CLEANING', 'OUT_OF_ORDER'].map(st => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                  statusFilter === st
+                    ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-750'
+                }`}
               >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xl font-bold font-mono text-white">
-                      Room {room.roomNumber}
-                    </span>
-                    {getStatusBadge(room.status)}
-                  </div>
+                {st}
+              </button>
+            ))}
+          </div>
 
-                  <div className="text-xs text-amber-400/90 font-medium mb-3">
-                    {room.roomTypeName} · Floor {room.floor}
-                  </div>
+          <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredRooms.map(room => {
+                const stay = room.currentGuestStayId ? guestStays.find(s => s.id === room.currentGuestStayId) : null;
+                const folio = stay ? guestFolios.find(f => f.id === stay.folioId) : null;
 
-                  {stay ? (
-                    <div className="bg-slate-950/80 p-3 rounded border border-slate-800/80 space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between text-slate-200">
-                        <span className="font-semibold">{stay.guestName}</span>
-                        <span className="font-mono text-[10px] text-emerald-400">IN-HOUSE</span>
+                return (
+                  <div
+                    key={room.id}
+                    className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col justify-between hover:border-slate-700 transition-all shadow-md group"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xl font-bold font-mono text-white">
+                          Room {room.roomNumber}
+                        </span>
+                        {getStatusBadge(room.status)}
                       </div>
-                      <div className="text-[11px] text-slate-400 font-mono">
-                        {stay.checkInDate} to {stay.checkOutDate}
+
+                      <div className="text-xs text-amber-400/90 font-medium mb-3">
+                        {room.roomTypeName} · Floor {room.floor}
                       </div>
 
-                      {folio && (
-                        <div className="pt-1.5 border-t border-slate-800 flex justify-between items-center font-mono">
-                          <span className="text-slate-400 text-[11px]">Folio Balance:</span>
-                          <span className="font-bold text-amber-300 text-xs">
-                            KES {folio.balanceDue.toLocaleString()}
-                          </span>
+                      {stay ? (
+                        <div className="bg-slate-950/80 p-3 rounded border border-slate-800/80 space-y-1.5 text-xs">
+                          <div className="flex items-center justify-between text-slate-200">
+                            <span className="font-semibold">{stay.guestName}</span>
+                            <span className="font-mono text-[10px] text-emerald-400">IN-HOUSE</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-mono">
+                            {stay.checkInDate} to {stay.checkOutDate}
+                          </div>
+
+                          {folio && (
+                            <div className="pt-1.5 border-t border-slate-800 flex justify-between items-center font-mono">
+                              <span className="text-slate-400 text-[11px]">Folio Balance:</span>
+                              <span className="font-bold text-amber-300 text-xs">
+                                KES {folio.balanceDue.toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="bg-slate-950/40 p-3 rounded border border-dashed border-slate-800 text-center py-4">
+                          <span className="text-xs text-slate-500 font-mono">Vacant / Unoccupied</span>
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <div className="bg-slate-950/40 p-3 rounded border border-dashed border-slate-800 text-center py-4">
-                      <span className="text-xs text-slate-500 font-mono">Vacant / Unoccupied</span>
+
+                    <div className="mt-4 pt-3 border-t border-slate-800 flex gap-2">
+                      <button
+                        onClick={() => handleOpenRoomModal(room)}
+                        className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded border border-slate-700"
+                      >
+                        Room Controls
+                      </button>
+
+                      {folio && (
+                        <button
+                          onClick={() => setActiveFolioModal(folio)}
+                          className="py-1.5 px-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold rounded border border-amber-500/30 flex items-center gap-1 font-mono"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                          <span>Folio</span>
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-800 flex gap-2">
-                  <button
-                    onClick={() => handleOpenRoomModal(room)}
-                    className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded border border-slate-700"
-                  >
-                    Room Controls
-                  </button>
-
-                  {folio && (
-                    <button
-                      onClick={() => setActiveFolioModal(folio)}
-                      className="py-1.5 px-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold rounded border border-amber-500/30 flex items-center gap-1 font-mono"
-                    >
-                      <Receipt className="w-3.5 h-3.5" />
-                      <span>Folio</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Dedicated 10-Point Check-In Modal */}
+      <DedicatedCheckInModal
+        isOpen={checkInModalOpen}
+        onClose={() => setCheckInModalOpen(false)}
+      />
 
       {/* MODAL: Room Inspection, Status Change & Minibar Consumption */}
       {selectedRoom && (

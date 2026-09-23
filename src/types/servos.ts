@@ -474,8 +474,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RolePermissions> = {
   Admin: {
     role: 'Admin',
     label: 'Executive Admin (Full Access)',
-    description: 'Complete system authority across ERP, Accounting, Control Engine, Procurement & Staff Hub',
-    allowedTabs: ['pos', 'kds', 'hotel', 'inventory', 'procurement', 'accounting', 'control', 'staff'],
+    description: 'Complete system authority across ERP, Command Centre, Catalog, CRM, Events, Accounting, Control Engine & System Configuration',
+    allowedTabs: ['command', 'pos', 'kds', 'hotel', 'catalog', 'crm', 'events', 'inventory', 'procurement', 'accounting', 'control', 'staff', 'settings'],
     canApproveDiscounts: true,
     canVoidOrders: true,
     canAdjustStock: true,
@@ -487,9 +487,9 @@ export const ROLE_DEFINITIONS: Record<UserRole, RolePermissions> = {
   },
   Manager: {
     role: 'Manager',
-    label: 'F&B Operations Manager',
-    description: 'Operational manager with supervisor authority, anomaly audits, discount approvals & stock transfers',
-    allowedTabs: ['pos', 'kds', 'hotel', 'inventory', 'procurement', 'accounting', 'control', 'staff'],
+    label: 'F&B & Hotel Operations Manager',
+    description: 'Operational manager with supervisor authority, anomaly audits, discount approvals, reservations & stock transfers',
+    allowedTabs: ['command', 'pos', 'kds', 'hotel', 'catalog', 'crm', 'events', 'inventory', 'procurement', 'accounting', 'control', 'staff', 'settings'],
     canApproveDiscounts: true,
     canVoidOrders: true,
     canAdjustStock: true,
@@ -502,8 +502,8 @@ export const ROLE_DEFINITIONS: Record<UserRole, RolePermissions> = {
   Server: {
     role: 'Server',
     label: 'Floor Server & Bartender',
-    description: 'POS floorplan, tables, room charge posting, and kitchen/bar KDS pass workflow',
-    allowedTabs: ['pos', 'kds', 'hotel'],
+    description: 'POS floorplan, tables, room charge posting, fast customer loyalty lookup, and kitchen/bar KDS pass workflow',
+    allowedTabs: ['pos', 'kds', 'hotel', 'crm', 'events'],
     canApproveDiscounts: false,
     canVoidOrders: false,
     canAdjustStock: false,
@@ -514,6 +514,273 @@ export const ROLE_DEFINITIONS: Record<UserRole, RolePermissions> = {
     canAccessHardwareSettings: false,
   },
 };
+
+// CRM & Loyalty 360
+export type CustomerVipTier = 'REGULAR' | 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'VIP_BLACK';
+
+export interface CustomerActivity {
+  id: string;
+  date: string;
+  type: 'BAR' | 'HOTEL' | 'EVENT' | 'DINING' | 'REWARD_REDEMPTION';
+  amount: number;
+  description: string;
+  referenceId?: string;
+}
+
+export interface CustomerProfile {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  vipTier: CustomerVipTier;
+  loyaltyPoints: number;
+  totalSpendKes: number;
+  visitCount: number;
+  hotelNightsCount: number;
+  avgSpendPerVisit: number;
+  lastVisitDate: string;
+  favouriteDrink: string;
+  preferredTable: string;
+  notes: string;
+  tags: string[];
+  birthDate?: string;
+  companyName?: string;
+  creditLimitKes: number;
+  creditBalanceKes: number;
+  timeline: CustomerActivity[];
+  status: 'ACTIVE' | 'VIP' | 'SUSPENDED';
+}
+
+export interface LoyaltyRewardRule {
+  id: string;
+  tier: CustomerVipTier;
+  minSpendKes: number;
+  pointsPer100Kes: number;
+  perks: string[];
+  birthdayVoucherKes: number;
+  discountRatePct: number;
+}
+
+// Events, Nightlife, Promoters & Ticketing
+export type EventStatus = 'UPCOMING' | 'LIVE' | 'COMPLETED' | 'CANCELLED';
+
+export interface HospitalityEvent {
+  id: string;
+  title: string;
+  subtitle: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // e.g. "20:00"
+  endTime: string; // e.g. "04:00"
+  venueSection: string; // e.g. "Main Terrace & VIP Arena"
+  capacity: number;
+  ticketsSold: number;
+  checkedInCount: number;
+  vipTablesCount: number;
+  doorRevenueKes: number;
+  presaleRevenueKes: number;
+  status: EventStatus;
+  ticketTiers: {
+    name: string;
+    price: number;
+    allocated: number;
+    sold: number;
+  }[];
+  headliner?: string;
+  djLineup?: string[];
+  minimumAge?: number;
+}
+
+export interface EventTicket {
+  id: string;
+  eventId: string;
+  ticketNumber: string;
+  tierName: string;
+  priceKes: number;
+  guestName: string;
+  guestPhone: string;
+  qrCode: string;
+  isScanned: boolean;
+  scannedAt?: string;
+  scannedBy?: string;
+  promoterId?: string;
+  promoterName?: string;
+  purchaseDate: string;
+}
+
+export interface Promoter {
+  id: string;
+  name: string;
+  phone: string;
+  promoCode: string;
+  guestListCount: number;
+  checkedInCount: number;
+  vipTablesBooked: number;
+  attributedSalesKes: number;
+  commissionRatePct: number;
+  earnedCommissionKes: number;
+  paidCommissionKes: number;
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
+// Hotel Operations 2.0 (Housekeeping & Maintenance Work Orders)
+export type HousekeepingStatus = 'CLEAN' | 'DIRTY' | 'CLEANING' | 'INSPECTION' | 'DND' | 'MAINTENANCE';
+
+export interface HousekeepingTask {
+  id: string;
+  roomId: string;
+  roomNumber: string;
+  roomType: string;
+  status: HousekeepingStatus;
+  assignedStaffId?: string;
+  assignedStaffName?: string;
+  priority: 'NORMAL' | 'HIGH' | 'RUSH_CHECKIN';
+  lastUpdated: string;
+  ageMinutes: number;
+  checklist: {
+    bedLinen: boolean;
+    bathroomSanitized: boolean;
+    towelsReplaced: boolean;
+    luxuryAmenities: boolean;
+    waterMinibarRestocked: boolean;
+    electronicsDamageCheck: boolean;
+  };
+  specialInstructions?: string;
+}
+
+export type MaintenancePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type MaintenanceStatus = 'REPORTED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface MaintenanceWorkOrder {
+  id: string;
+  orderNumber: string;
+  roomId: string;
+  roomNumber: string;
+  assetName: string;
+  issueDescription: string;
+  priority: MaintenancePriority;
+  status: MaintenanceStatus;
+  reportedAt: string;
+  assignedTechnician?: string;
+  partsUsed?: string;
+  partsCostKes: number;
+  laborCostKes: number;
+  resolvedAt?: string;
+  resolutionNotes?: string;
+}
+
+export interface HotelTapeReservation {
+  id: string;
+  resNumber: string;
+  guestId?: string;
+  guestName: string;
+  guestPhone: string;
+  guestEmail: string;
+  roomNumber: string;
+  roomType: string;
+  checkInDate: string; // YYYY-MM-DD
+  checkOutDate: string; // YYYY-MM-DD
+  nightsCount: number;
+  adultsCount: number;
+  ratePlan: 'BAR' | 'CORPORATE' | 'PACKAGE_VIP' | 'COMPLIMENTARY';
+  dailyRateKes: number;
+  totalAmountKes: number;
+  depositPaidKes: number;
+  source: 'DIRECT' | 'WALK_IN' | 'CORPORATE' | 'BOOKING_COM' | 'EXPEDIA';
+  status: 'CONFIRMED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED';
+  specialRequests?: string;
+}
+
+// Universal Task / Action Inbox
+export type InboxCategory = 
+  | 'APPROVAL' 
+  | 'STOCK_ALERT' 
+  | 'MAINTENANCE' 
+  | 'HOUSEKEEPING' 
+  | 'CASH_VARIANCE' 
+  | 'SYNC_CONFLICT' 
+  | 'OVERDUE_INVOICE' 
+  | 'RESERVATION_ACTION';
+
+export interface InboxTaskItem {
+  id: string;
+  category: InboxCategory;
+  urgency: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
+  title: string;
+  subtitle: string;
+  description: string;
+  amountKes?: number;
+  dueTimeText?: string;
+  relatedEntityId?: string;
+  actionLabel: string;
+  actionType: string;
+  targetTab?: string;
+  isCompleted: boolean;
+  createdAt: string;
+}
+
+// Catalog Studio & Price Books
+export interface PriceBookRule {
+  id: string;
+  name: string;
+  type: 'HAPPY_HOUR' | 'VIP' | 'STAFF' | 'MEMBERS' | 'EVENT_NIGHT' | 'ROOM_SERVICE' | 'WHOLESALE';
+  description: string;
+  discountPct?: number;
+  specialPriceKes?: number;
+  startTime?: string;
+  endTime?: string;
+  daysOfWeek?: string[];
+  activeOutletIds: string[];
+  applicableCategories?: string[];
+  applicableProductCodes?: string[];
+  active: boolean;
+}
+
+// Financial Recon & Expenses & AR
+export interface ExpenseRecord {
+  id: string;
+  expenseNumber: string;
+  title: string;
+  category: 'UTILITIES' | 'MAINTENANCE' | 'STAFF_MEALS' | 'MARKETING' | 'SUPPLIES' | 'FUEL' | 'LICENSES' | 'OTHER';
+  amountKes: number;
+  paymentMethod: 'CASH' | 'MPESA' | 'BANK_TRANSFER' | 'PETTY_CASH';
+  paidTo: string;
+  costCenter: 'BAR' | 'KITCHEN' | 'HOTEL' | 'ADMIN';
+  approvedBy: string;
+  createdAt: string;
+  notes?: string;
+  receiptNumber?: string;
+  status: 'APPROVED' | 'PENDING' | 'REJECTED';
+}
+
+export interface MpesaReconciliationRecord {
+  id: string;
+  mpesaReceiptNo: string;
+  customerName: string;
+  customerPhone: string;
+  amountKes: number;
+  posAmountKes: number;
+  varianceKes: number;
+  status: 'MATCHED' | 'UNMATCHED' | 'DISCREPANCY';
+  transactionTime: string;
+  servosOrderId?: string;
+  servosOrderNumber?: string;
+  notes?: string;
+}
+
+export interface CorporateAccount {
+  id: string;
+  companyName: string;
+  accountNumber: string;
+  kraPin: string;
+  contactPerson: string;
+  contactEmail: string;
+  contactPhone: string;
+  creditLimitKes: number;
+  currentBalanceKes: number;
+  overdue30DaysKes: number;
+  paymentTermsDays: number;
+  status: 'CURRENT' | 'OVERDUE' | 'FROZEN';
+}
 
 // Staff, HR, Roster, Leave & Payroll
 export type EmployeeRole = 

@@ -9,14 +9,19 @@ import {
   ChevronDown,
   Menu,
   X,
+  LayoutDashboard,
   Utensils,
   Flame,
   Bed,
   Boxes,
+  SlidersHorizontal,
+  Calendar,
   FileSpreadsheet,
   Receipt,
   Coins,
   Users,
+  UserCheck,
+  Settings,
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
@@ -25,11 +30,12 @@ import {
   Scale,
   AlertTriangle,
   CheckCircle2,
-  SlidersHorizontal,
+  Inbox,
   Info
 } from 'lucide-react';
 import { GlobalSearchModal } from './GlobalSearchModal';
 import { OfflineQueueModal } from './OfflineQueueModal';
+import { UniversalInboxModal } from '../inbox/UniversalInboxModal';
 import { EdgeDevice, EdgeDeviceStatus, UserRole } from '../../types/servos';
 import { calculatePredictiveInventory, PredictiveStockAnalysis } from '../../utils/predictiveStock';
 
@@ -76,6 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
   const [hardwareDropdownOpen, setHardwareDropdownOpen] = useState<boolean>(false);
   const [offlineQueueModalOpen, setOfflineQueueModalOpen] = useState<boolean>(false);
+  const [inboxModalOpen, setInboxModalOpen] = useState<boolean>(false);
 
   // Calculate Predictive Low-Stock Alerts for Global Search Bar Indicator
   const predictiveAlerts = useMemo(() => {
@@ -103,14 +110,19 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   const navLinks = [
+    { id: 'command', label: 'Command Centre', icon: LayoutDashboard, desc: 'Live revenue, occupancy & alerts' },
     { id: 'pos', label: 'POS & Tables', icon: Utensils, desc: 'Floorplan, bills & settlement' },
     { id: 'kds', label: 'KDS Pass', icon: Flame, desc: 'Kitchen & bar prep stations' },
-    { id: 'hotel', label: 'Hotel PMS', icon: Bed, desc: 'Rooms, folios & minibar' },
+    { id: 'hotel', label: 'Hotel PMS', icon: Bed, desc: 'Tape chart, rooms & housekeeping' },
+    { id: 'catalog', label: 'Catalog Studio', icon: SlidersHorizontal, desc: 'Portions, yields & price books' },
+    { id: 'crm', label: 'Guest 360 & Loyalty', icon: Users, desc: 'Customer profiles & rewards' },
+    { id: 'events', label: 'Events & Nightlife', icon: Calendar, desc: 'Door scanner & promoters' },
     { id: 'inventory', label: 'Inventory & Yield', icon: Boxes, desc: 'Spirits yield & stock depletion' },
     { id: 'procurement', label: 'Procurement & AP', icon: FileSpreadsheet, desc: 'POs, GRN & 3-way match' },
     { id: 'accounting', label: 'Accounting & eTIMS', icon: Receipt, desc: 'Double-entry & KRA fiscal' },
     { id: 'control', label: 'Control & Audit', icon: ShieldAlert, desc: 'Anomalies & approvals' },
-    { id: 'staff', label: 'Staff & HR Hub', icon: Users, desc: 'Payroll, leave, shifts & till' }
+    { id: 'staff', label: 'Staff & HR Hub', icon: UserCheck, desc: 'Payroll, leave, shifts & till' },
+    { id: 'settings', label: 'Settings & Admin', icon: Settings, desc: 'Multi-property, RBAC & eTIMS' }
   ];
 
   const visibleNavLinks = navLinks.filter(link => isTabAllowed(link.id));
@@ -406,6 +418,20 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="hidden lg:inline">{offlineQueueCount > 0 ? 'SYNC' : 'QUEUE'}</span>
                 <span>({offlineQueueCount})</span>
               </button>
+
+              {/* Universal Inbox & Approvals Quick Trigger */}
+              <button
+                onClick={() => setInboxModalOpen(true)}
+                title={`Universal Inbox: ${totalControlAlerts} active items`}
+                className="relative p-1.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors"
+              >
+                <Inbox className="w-4 h-4 text-amber-400" />
+                {totalControlAlerts > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1 py-0.2 bg-rose-500 text-white font-mono text-[9px] font-bold rounded-full border border-slate-900 animate-pulse min-w-3.5 text-center">
+                    {totalControlAlerts}
+                  </span>
+                )}
+              </button>
             </div>
 
             {/* Active Employee Switcher (Desktop >= lg) */}
@@ -429,6 +455,12 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </header>
+
+      {/* UNIVERSAL INBOX MODAL */}
+      <UniversalInboxModal
+        isOpen={inboxModalOpen}
+        onClose={() => setInboxModalOpen(false)}
+      />
 
       {/* GLOBAL SEARCH COMMAND MODAL */}
       <GlobalSearchModal
