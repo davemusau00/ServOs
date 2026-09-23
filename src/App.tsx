@@ -6,6 +6,8 @@ import { CommandCentreView } from './components/command/CommandCentreView';
 import { POSView } from './components/pos/POSView';
 import { KDSView } from './components/kds/KDSView';
 import { HotelPMSView } from './components/hotel/HotelPMSView';
+import { HostStandView } from './components/host/HostStandView';
+import { PlatformAdminView } from './components/platform/PlatformAdminView';
 import { CatalogStudioView } from './components/catalog/CatalogStudioView';
 import { CRM360View } from './components/crm/CRM360View';
 import { EventsNightlifeView } from './components/events/EventsNightlifeView';
@@ -106,6 +108,10 @@ const MainApp: React.FC = () => {
         return <CommandCentreView />;
       case 'pos':
         return <POSView />;
+      case 'host':
+        return <HostStandView />;
+      case 'platform':
+        return <PlatformAdminView />;
       case 'kds':
         return <KDSView />;
       case 'hotel':

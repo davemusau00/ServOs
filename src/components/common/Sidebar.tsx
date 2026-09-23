@@ -57,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const allNavLinks = [
     { id: 'command', label: 'Command Centre', icon: LayoutDashboard, desc: 'Live revenue, occupancy & alerts' },
     { id: 'pos', label: 'POS & Tables', icon: Utensils, desc: 'Floorplan, tabs & checkout' },
+    { id: 'host', label: 'Host & Reservations', icon: UserCheck, desc: 'Waitlist, reservations & seating' },
     { id: 'kds', label: 'KDS Pass', icon: Flame, desc: 'Kitchen & bar prep stations' },
     { id: 'hotel', label: 'Hotel PMS', icon: Bed, desc: 'Tape chart, rooms & housekeeping' },
     { id: 'catalog', label: 'Catalog Studio', icon: SlidersHorizontal, desc: 'Portions, yields & price books' },
@@ -67,7 +68,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'accounting', label: 'Accounting & eTIMS', icon: Receipt, desc: 'Double-entry & reconciliation' },
     { id: 'control', label: 'Control & Audit', icon: ShieldAlert, desc: 'Anomalies & approvals' },
     { id: 'staff', label: 'Staff & HR Hub', icon: UserCheck, desc: 'Payroll, leave, shifts & till' },
-    { id: 'settings', label: 'Settings & Admin', icon: Settings, desc: 'Multi-property, RBAC & eTIMS' }
+    { id: 'settings', label: 'Settings & Admin', icon: Settings, desc: 'Multi-property, RBAC & eTIMS' },
+    { id: 'platform', label: 'SaaS Platform Admin', icon: Building2, desc: 'Superadmin, tenants & fleet' }
   ];
 
   const visibleNavLinks = allNavLinks.filter(link => isTabAllowed(link.id));
