@@ -730,13 +730,13 @@ export const PlatformAdminView: React.FC = () => {
       )}
 
       {/* SaaS Platform Control Header */}
-      <div className="px-6 py-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between shrink-0">
+      <div className="px-4 sm:px-6 py-4 bg-slate-900/90 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-purple-400 shadow-md">
+          <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-purple-400 shadow-md shrink-0">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white flex flex-wrap items-center gap-2">
               ServOS Platform Control Plane
               <span className="px-2 py-0.5 text-[10px] font-mono bg-purple-500/10 text-purple-400 border border-purple-500/30 rounded-full font-bold">
                 SUPERADMIN LAYER
@@ -749,10 +749,10 @@ export const PlatformAdminView: React.FC = () => {
         </div>
 
         {/* Global Action Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 w-full md:w-auto">
           <button
             onClick={() => setIsImpersonationModalOpen(true)}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all"
+            className="flex-1 md:flex-initial px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all"
           >
             <Eye className="w-4 h-4 text-purple-400" />
             <span>Start Support Session</span>
@@ -763,7 +763,7 @@ export const PlatformAdminView: React.FC = () => {
               setWizardStep(1);
               setIsProvisionWizardOpen(true);
             }}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition-all shadow-lg shadow-purple-600/20"
+            className="flex-1 md:flex-initial px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-600/20"
           >
             <Plus className="w-4 h-4" />
             <span>Provision New Tenant</span>
@@ -772,7 +772,7 @@ export const PlatformAdminView: React.FC = () => {
       </div>
 
       {/* KPI Overview Banner */}
-      <div className="grid grid-cols-4 gap-4 p-6 bg-slate-900/40 border-b border-slate-800 shrink-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-6 bg-slate-900/40 border-b border-slate-800 shrink-0">
         <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-xl">
           <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
             TOTAL ACTIVE TENANTS

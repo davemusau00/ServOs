@@ -127,7 +127,7 @@ export const CommandCentreView: React.FC<CommandCentreViewProps> = ({ onNavigate
             </button>
 
             {/* Role Lens */}
-            <div className="flex items-center bg-slate-850 p-1 rounded-xl border border-slate-750 text-xs font-mono">
+            <div className="flex items-center bg-slate-850 p-1 rounded-xl border border-slate-750 text-xs font-mono overflow-x-auto scrollbar-none max-w-full">
               <button
                 onClick={() => setActiveLens('GM')}
                 className={`px-2.5 py-1 rounded-lg transition-colors font-bold ${
