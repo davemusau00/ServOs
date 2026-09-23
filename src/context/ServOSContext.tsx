@@ -92,6 +92,7 @@ interface ServOSContextType {
   applyCompToItem: (itemId: string, reason: string) => void;
   applyOrderDiscount: (discountPct: number, reason: string) => void;
   voidOrder: (orderId: string, reason: string) => void;
+  transferOrderToTable: (orderId: string, newTableId: string) => void;
 
   // Payments & Cash Drawer
   processPayment: (
@@ -1431,6 +1432,43 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const transferOrderToTable = (orderId: string, newTableId: string) => {
+    const targetTable = tables.find(t => t.id === newTableId);
+    if (!targetTable) return;
+
+    const ord = orders.find(o => o.id === orderId);
+    if (!ord) return;
+
+    const oldTableId = ord.tableId;
+
+    // Recalculate totals if target table has different minimum spend
+    const totals = calculateTotals(ord.items, ord.discountTotal, targetTable.minimumSpend || 0);
+
+    const updatedOrder: Order = {
+      ...ord,
+      tableId: newTableId,
+      tableName: targetTable.label,
+      ...totals
+    };
+
+    setOrders(prev => prev.map(o => (o.id === orderId ? updatedOrder : o)));
+    if (activeOrder?.id === orderId) {
+      setActiveOrder(updatedOrder);
+    }
+
+    setTables(prev =>
+      prev.map(t => {
+        if (t.id === oldTableId) {
+          return { ...t, currentOrderId: undefined, state: 'AVAILABLE' };
+        }
+        if (t.id === newTableId) {
+          return { ...t, currentOrderId: orderId, state: 'ORDERING' };
+        }
+        return t;
+      })
+    );
+  };
+
   // Helper: execute stock depletion for an order
   const depleteInventoryForOrder = (order: Order) => {
     const newMovements: StockMovement[] = [];
@@ -2687,6 +2725,7 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         applyCompToItem,
         applyOrderDiscount,
         voidOrder,
+        transferOrderToTable,
         processPayment,
         tillSession,
         openTillSession,

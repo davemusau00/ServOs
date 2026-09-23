@@ -84,26 +84,26 @@ export const HotelPMSView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-60px)] bg-slate-950 overflow-hidden">
+    <div className="flex-1 h-full min-h-0 flex flex-col bg-slate-950 overflow-hidden">
       {/* Top Controls Header */}
-      <div className="bg-slate-900 border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <Bed className="w-5 h-5 text-amber-400" />
+            <Bed className="w-5 h-5 text-amber-400 shrink-0" />
             <span>Hotel Property Management System (PMS)</span>
           </h2>
-          <p className="text-xs text-slate-400 font-mono">
+          <p className="text-xs text-slate-400 font-mono mt-0.5">
             Reservations, Guest Stays, Folio Subledgers & Housekeeping
           </p>
         </div>
 
         {/* Status filters */}
-        <div className="flex items-center gap-1.5 overflow-x-auto">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5 shrink-0">
           {['ALL', 'AVAILABLE', 'OCCUPIED', 'DIRTY', 'CLEANING', 'OUT_OF_ORDER'].map(st => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
                 statusFilter === st
                   ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-750'
@@ -116,7 +116,7 @@ export const HotelPMSView: React.FC = () => {
       </div>
 
       {/* Main Content: Rooms Grid */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 lg:pb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredRooms.map(room => {
             const stay = room.currentGuestStayId ? guestStays.find(s => s.id === room.currentGuestStayId) : null;

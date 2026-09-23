@@ -56,64 +56,64 @@ export const InventoryView: React.FC = () => {
   });
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-60px)] bg-slate-950 overflow-hidden">
+    <div className="flex-1 h-full min-h-0 flex flex-col bg-slate-950 overflow-hidden">
       {/* Module Header */}
-      <div className="bg-slate-900 border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 shrink-0">
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <Package className="w-5 h-5 text-amber-400" />
+            <Package className="w-5 h-5 text-amber-400 shrink-0" />
             <span>Beverage Yield & Inventory Ledger Engine</span>
           </h2>
-          <p className="text-xs text-slate-400 font-mono">
+          <p className="text-xs text-slate-400 font-mono mt-0.5 line-clamp-1">
             Dimensionally-Safe Base Units (ml, g, units), Actual-vs-Theoretical (AvT) & Movement Audits
           </p>
         </div>
 
         {/* Tab & Action controls */}
-        <div className="flex items-center gap-3">
-          <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setActiveTab('ITEMS')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
                 activeTab === 'ITEMS'
-                  ? 'bg-amber-500 text-slate-950 font-bold'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Stock Items & Levels
+              Stock Items
             </button>
             <button
               onClick={() => setActiveTab('AVT')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
                 activeTab === 'AVT'
-                  ? 'bg-amber-500 text-slate-950 font-bold'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Actual vs Theoretical (AvT)
+              AvT Variance
             </button>
             <button
               onClick={() => setActiveTab('MOVEMENTS')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
                 activeTab === 'MOVEMENTS'
-                  ? 'bg-amber-500 text-slate-950 font-bold'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Movement Ledger ({stockMovements.length})
+              Movements ({stockMovements.length})
             </button>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => {
                 setTransferItemId(stockItems[0].id);
                 setIsTransferOpen(true);
               }}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded border border-slate-700 flex items-center gap-1.5"
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
             >
               <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
-              <span>Transfer Stock</span>
+              <span>Transfer</span>
             </button>
 
             <button
@@ -121,10 +121,10 @@ export const InventoryView: React.FC = () => {
                 setWasteItemId(stockItems[0].id);
                 setIsWasteOpen(true);
               }}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded border border-slate-700 flex items-center gap-1.5"
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
             >
               <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-              <span>Declare Waste</span>
+              <span>Waste</span>
             </button>
 
             <button
@@ -132,17 +132,17 @@ export const InventoryView: React.FC = () => {
                 setStocktakeItemId(stockItems[0].id);
                 setIsStocktakeOpen(true);
               }}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded border border-slate-700 flex items-center gap-1.5"
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
             >
               <ClipboardCheck className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Stock Count</span>
+              <span>Count</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 lg:pb-8">
         {/* VIEW 1: Stock Items & Levels */}
         {activeTab === 'ITEMS' && (
           <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">

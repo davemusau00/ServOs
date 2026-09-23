@@ -27,7 +27,7 @@ export const ControlEngineView: React.FC = () => {
     handleApproval
   } = useServOS();
 
-  const [activeTab, setActiveTab] = useState<'NORTHSTAR' | 'ALERTS' | 'APPROVALS'>('NORTHSTAR');
+  const [activeTab, setActiveTab] = useState<'NORTHSTAR' | 'ALERTS' | 'APPROVALS'>('ALERTS');
   const [searchQuery, setSearchQuery] = useState<string>('ORD-9020');
   const [traceResult, setTraceResult] = useState<any>(() => traceEvidence('ORD-9020'));
 
@@ -42,79 +42,82 @@ export const ControlEngineView: React.FC = () => {
   const pendingApprovals = approvalRequests.filter(a => a.status === 'PENDING');
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-60px)] bg-slate-950 overflow-hidden">
+    <div className="flex-1 h-full min-h-0 flex flex-col bg-slate-950 overflow-hidden">
       {/* Header */}
-      <div className="bg-slate-900 border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div>
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-amber-400" />
+          <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+            <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
             <span>Control Engine & North Star Audit Console</span>
           </h2>
-          <p className="text-xs text-slate-400 font-mono">
+          <p className="text-[11px] sm:text-xs text-slate-400 font-mono mt-0.5 line-clamp-1">
             Full-Life Traceability from POS Order → KDS → M-PESA → eTIMS → Stock Depletion → General Ledger
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
-            <button
-              onClick={() => setActiveTab('NORTHSTAR')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                activeTab === 'NORTHSTAR' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              North Star Traceability
-            </button>
-            <button
-              onClick={() => setActiveTab('ALERTS')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors flex items-center gap-1.5 ${
-                activeTab === 'ALERTS' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <span>Anomaly Alerts</span>
-              {openAlerts.length > 0 && (
-                <span className="px-1.5 py-0.2 text-[10px] bg-rose-500 text-white rounded-full font-bold">
-                  {openAlerts.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('APPROVALS')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors flex items-center gap-1.5 ${
-                activeTab === 'APPROVALS' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <span>Manager Approvals</span>
-              {pendingApprovals.length > 0 && (
-                <span className="px-1.5 py-0.2 text-[10px] bg-amber-500 text-slate-950 rounded-full font-bold">
-                  {pendingApprovals.length}
-                </span>
-              )}
-            </button>
-          </div>
+        {/* Tab switchers */}
+        <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none shrink-0">
+          <button
+            onClick={() => setActiveTab('NORTHSTAR')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+              activeTab === 'NORTHSTAR' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            North Star Traceability
+          </button>
+          <button
+            onClick={() => setActiveTab('ALERTS')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'ALERTS' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>Anomaly Alerts</span>
+            {openAlerts.length > 0 && (
+              <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${
+                activeTab === 'ALERTS' ? 'bg-slate-950 text-amber-400' : 'bg-rose-500 text-white'
+              }`}>
+                {openAlerts.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('APPROVALS')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'APPROVALS' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>Manager Approvals</span>
+            {pendingApprovals.length > 0 && (
+              <span className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold ${
+                activeTab === 'APPROVALS' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500 text-slate-950'
+              }`}>
+                {pendingApprovals.length}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-6">
+      {/* Content Area (Safe padding for bottom bar on mobile: pb-28 lg:pb-8) */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 lg:pb-8">
         {/* VIEW 1: The North Star Traceability Console (Section 29) */}
         {activeTab === 'NORTHSTAR' && (
           <div className="space-y-6 max-w-5xl mx-auto">
             {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex gap-2">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Query any identifier: Order # (e.g. ORD-9020), Item (e.g. Jameson), Room (e.g. 101), or Account (1020)..."
+                  placeholder="Query: Order # (ORD-9020), Item (Jameson), Room (101)..."
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 font-mono"
                 />
               </div>
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg shadow-sm"
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg shadow-sm whitespace-nowrap"
               >
                 Trace Lifecycle
               </button>
@@ -123,8 +126,8 @@ export const ControlEngineView: React.FC = () => {
             {/* Traceability Graph Flow */}
             {traceResult && traceResult.type !== 'NONE' ? (
               <div className="space-y-4">
-                <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-800">
-                  <div className="flex items-center justify-between">
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">
                         Trace Result: {traceResult.type} MATCH FOUND
@@ -133,7 +136,7 @@ export const ControlEngineView: React.FC = () => {
                         Lifecycle Audit Trail & Correlated Evidence
                       </h3>
                     </div>
-                    <span className="text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2.5 py-1 rounded">
+                    <span className="text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2.5 py-1 rounded w-fit">
                       Auditable: 100% Deterministic
                     </span>
                   </div>
@@ -141,12 +144,12 @@ export const ControlEngineView: React.FC = () => {
 
                 {/* Step 1: POS Order */}
                 {traceResult.order && (
-                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="flex items-center gap-2 text-xs font-bold text-amber-400 font-mono mb-2">
                       <span className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center text-[11px]">1</span>
                       <span>POS Order Inception</span>
                     </div>
-                    <div className="p-3 bg-slate-950 rounded border border-slate-800 text-xs font-mono space-y-1">
+                    <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-xs font-mono space-y-1">
                       <div className="flex justify-between text-slate-200">
                         <span className="font-bold">{traceResult.order.orderNumber} ({traceResult.order.tableName || traceResult.order.tabName})</span>
                         <span className="text-amber-300">KES {traceResult.order.grandTotal.toLocaleString()}</span>
@@ -161,106 +164,77 @@ export const ControlEngineView: React.FC = () => {
                   </div>
                 )}
 
-                {/* Step 2: Payment & Daraja M-PESA */}
-                <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 font-mono mb-2">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[11px]">2</span>
-                    <span>Tender & Payment Settlement</span>
-                  </div>
-                  <div className="p-3 bg-slate-950 rounded border border-slate-800 text-xs font-mono space-y-1">
-                    <div className="flex justify-between text-slate-200">
-                      <span>Method: {traceResult.payment?.tenderType || 'SAFARICOM M-PESA'}</span>
-                      <span className="text-emerald-400 font-bold">
-                        Daraja Ref: {traceResult.payment?.mpesaReceiptNumber || 'QHK482910'}
-                      </span>
+                {/* Step 2: Payment */}
+                {traceResult.order?.payments && traceResult.order.payments.length > 0 && (
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 font-mono mb-2">
+                      <span className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[11px]">2</span>
+                      <span>Settlement & Fiscal Clearance</span>
                     </div>
-                    <div className="text-[11px] text-slate-400">
-                      Amount: KES {(traceResult.payment?.amount || traceResult.order?.grandTotal || 9500).toLocaleString()} · Status: SETTLED
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 3: KRA eTIMS Fiscal Submission */}
-                {traceResult.fiscalInvoice && (
-                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 font-mono mb-2">
-                      <span className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-[11px]">3</span>
-                      <span>KRA eTIMS Fiscal Clearance</span>
-                    </div>
-                    <div className="p-3 bg-slate-950 rounded border border-slate-800 text-xs font-mono space-y-1">
-                      <div className="flex justify-between text-slate-200">
-                        <span className="font-bold">{traceResult.fiscalInvoice.invoiceNumber}</span>
-                        <span className="text-cyan-300">CU: {traceResult.fiscalInvoice.cuSerialNumber}</span>
-                      </div>
-                      <div className="text-[11px] text-slate-400">
-                        Tax Base: KES {traceResult.fiscalInvoice.taxableAmount.toLocaleString()} | 16% VAT: KES {traceResult.fiscalInvoice.vatAmount.toLocaleString()} | 2% Catering: KES {traceResult.fiscalInvoice.levyAmount.toLocaleString()}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        Verification Hash: {traceResult.fiscalInvoice.verificationHash}
-                      </div>
+                    <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-xs font-mono space-y-1">
+                      {traceResult.order.payments.map((p: any) => (
+                        <div key={p.id} className="flex justify-between items-center text-slate-200">
+                          <div>
+                            <span className="font-bold text-amber-400">{p.tenderType}</span>
+                            <span className="text-slate-400 ml-2">Ref: {p.reference}</span>
+                          </div>
+                          <span className="font-bold">KES {p.amount.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      {traceResult.order.etimsInvoiceNumber && (
+                        <div className="text-emerald-400 text-[11px] pt-1">
+                          ✓ eTIMS Fiscal Invoice: {traceResult.order.etimsInvoiceNumber}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Step 4: Dimensionally-Safe Stock Movements */}
-                {traceResult.movements && traceResult.movements.length > 0 && (
-                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-xs font-bold text-purple-400 font-mono mb-2">
-                      <span className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center text-[11px]">4</span>
-                      <span>Physical Stock Depletion Ledger</span>
+                {/* Step 3: Stock Depletion */}
+                {traceResult.stockMovements && traceResult.stockMovements.length > 0 && (
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-blue-400 font-mono mb-2">
+                      <span className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-[11px]">3</span>
+                      <span>Stock Depletions Logged</span>
                     </div>
-                    <div className="space-y-2">
-                      {traceResult.movements.map((m: any) => (
-                        <div key={m.id} className="p-3 bg-slate-950 rounded border border-slate-800 text-xs font-mono flex items-center justify-between">
-                          <div>
-                            <span className="font-bold text-slate-200">{m.stockItemName}</span>
-                            <span className="text-[11px] text-slate-400 ml-2">({m.locationName})</span>
-                            <div className="text-[11px] text-slate-400 mt-0.5">
-                              Type: {m.movementType} · Cost snapshot: KES {m.unitCostSnapshot.toFixed(2)}/unit
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-rose-400 font-bold tabular-nums">
-                              {m.quantityDelta} {m.baseUnit}
-                            </span>
-                            <div className="text-[10px] text-slate-400">
-                              Valuation: KES {m.totalCostValuation.toFixed(2)}
-                            </div>
-                          </div>
+                    <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-xs font-mono space-y-1">
+                      {traceResult.stockMovements.map((m: any) => (
+                        <div key={m.id} className="flex justify-between text-slate-300 text-[11px]">
+                          <span>{m.stockItemId} ({m.movementType})</span>
+                          <span className="text-rose-400">-{m.quantity} {m.unitSymbol || 'units'}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Step 5: Double-Entry General Ledger Journal */}
-                {traceResult.journalEntry && (
-                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-xs font-bold text-blue-400 font-mono mb-2">
-                      <span className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-[11px]">5</span>
-                      <span>General Ledger Journal Posting</span>
+                {/* Step 4: General Ledger */}
+                {traceResult.journalEntries && traceResult.journalEntries.length > 0 && (
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-purple-400 font-mono mb-2">
+                      <span className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center text-[11px]">4</span>
+                      <span>Double-Entry General Ledger</span>
                     </div>
-                    <div className="p-3 bg-slate-950 rounded border border-slate-800 text-xs font-mono space-y-2">
-                      <div className="flex justify-between text-slate-200">
-                        <span className="font-bold">{traceResult.journalEntry.entryNumber} — {traceResult.journalEntry.memo}</span>
-                        <span className="text-emerald-400 font-bold">BALANCED (KES {traceResult.journalEntry.totalDebit.toLocaleString()})</span>
-                      </div>
-                      <div className="space-y-1 pt-1 border-t border-slate-850">
-                        {traceResult.journalEntry.lines.map((l: any) => (
-                          <div key={l.id} className="flex justify-between text-[11px]">
-                            <span className="text-slate-400">{l.accountCode} - {l.accountName}</span>
-                            <span className="tabular-nums">
-                              {l.debit > 0 ? `Dr. KES ${l.debit.toLocaleString()}` : `Cr. KES ${l.credit.toLocaleString()}`}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-xs font-mono space-y-2">
+                      {traceResult.journalEntries.map((j: any) => (
+                        <div key={j.id} className="border-b border-slate-850 pb-1.5 last:border-0 last:pb-0">
+                          <div className="font-bold text-slate-200">{j.entryNumber}: {j.memo}</div>
+                          {j.lines.map((l: any) => (
+                            <div key={l.id} className="flex justify-between text-[11px]">
+                              <span className="text-slate-400">{l.accountCode} - {l.accountName}</span>
+                              <span className="tabular-nums">
+                                {l.debit > 0 ? `Dr. KES ${l.debit.toLocaleString()}` : `Cr. KES ${l.credit.toLocaleString()}`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="p-8 text-center text-slate-500 bg-slate-900/40 rounded-lg border border-slate-800 font-mono text-xs">
+              <div className="p-8 text-center text-slate-500 bg-slate-900/40 rounded-xl border border-slate-800 font-mono text-xs">
                 No matching record found for query "{searchQuery}". Try searching "ORD-9020" or "Jameson" or "101".
               </div>
             )}
@@ -269,37 +243,45 @@ export const ControlEngineView: React.FC = () => {
 
         {/* VIEW 2: Anomaly Alerts */}
         {activeTab === 'ALERTS' && (
-          <div className="space-y-3">
+          <div className="space-y-3.5 max-w-5xl mx-auto">
             {anomalyAlerts.map(alert => {
               const isOpen = alert.status === 'OPEN';
               return (
                 <div
                   key={alert.id}
-                  className={`p-4 rounded-lg border flex items-start justify-between gap-4 ${
-                    isOpen ? 'bg-slate-900 border-rose-500/30' : 'bg-slate-900/60 border-slate-800 opacity-60'
+                  className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-start justify-between gap-3.5 transition-all ${
+                    isOpen ? 'bg-slate-900 border-rose-500/40 shadow-sm' : 'bg-slate-900/60 border-slate-800 opacity-60'
                   }`}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
                     <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${
                       alert.severity === 'CRITICAL' ? 'text-rose-500' :
                       alert.severity === 'HIGH' ? 'text-rose-400' : 'text-amber-400'
                     }`} />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-white">{alert.title}</span>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
+                    <div className="min-w-0 flex-1">
+                      {/* Responsive title row with wrap */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-sm text-white break-words">
+                          {alert.title}
+                        </span>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold shrink-0 ${
                           alert.severity === 'CRITICAL' ? 'bg-rose-500/20 text-rose-300' :
                           alert.severity === 'HIGH' ? 'bg-rose-500/20 text-rose-300' :
                           'bg-amber-500/20 text-amber-300'
                         }`}>
                           {alert.severity}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400">
+                        <span className="text-[10px] font-mono text-slate-400 shrink-0">
                           {alert.ruleCode}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-300 mt-1">{alert.description}</p>
-                      <div className="text-[11px] font-mono text-slate-400 mt-2 bg-slate-950 p-2 rounded border border-slate-800">
+
+                      <p className="text-xs text-slate-300 mt-1.5 break-words leading-relaxed">
+                        {alert.description}
+                      </p>
+
+                      {/* Evidence block with proper wrap / scroll */}
+                      <div className="text-[11px] font-mono text-slate-400 mt-2.5 bg-slate-950 p-2.5 rounded-lg border border-slate-800 break-all whitespace-pre-wrap overflow-x-auto max-h-40 leading-relaxed">
                         Evidence Details: {JSON.stringify(alert.evidence)}
                       </div>
                     </div>
@@ -308,7 +290,7 @@ export const ControlEngineView: React.FC = () => {
                   {isOpen && (
                     <button
                       onClick={() => resolveAlert(alert.id, 'Acknowledged and verified by manager on duty')}
-                      className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded border border-slate-700 shrink-0"
+                      className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 shrink-0 text-center transition-colors shadow-xs"
                     >
                       Acknowledge & Resolve
                     </button>
@@ -321,7 +303,7 @@ export const ControlEngineView: React.FC = () => {
 
         {/* VIEW 3: Manager Approval Queue */}
         {activeTab === 'APPROVALS' && (
-          <div className="space-y-3">
+          <div className="space-y-3.5 max-w-5xl mx-auto">
             {approvalRequests.length === 0 ? (
               <div className="text-center py-12 text-slate-500 font-mono text-xs">
                 No approval requests in the pipeline.
@@ -332,13 +314,15 @@ export const ControlEngineView: React.FC = () => {
                 return (
                   <div
                     key={req.id}
-                    className="p-4 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-between gap-4"
+                    className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3.5"
                   >
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-sm text-white font-mono">{req.actionType}</span>
                         {req.amount !== undefined && (
-                          <span className="text-xs text-amber-400 font-mono">Amount: KES {req.amount.toLocaleString()}</span>
+                          <span className="text-xs text-amber-400 font-mono font-bold">
+                            Amount: KES {req.amount.toLocaleString()}
+                          </span>
                         )}
                         <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
                           isPending ? 'bg-amber-500/20 text-amber-300' :
@@ -348,24 +332,26 @@ export const ControlEngineView: React.FC = () => {
                           {req.status}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-300 mt-1">Details: {req.details}</p>
+                      <p className="text-xs text-slate-300 mt-1.5 break-words">
+                        Details: {req.details}
+                      </p>
                       <p className="text-[11px] text-slate-400 font-mono mt-0.5">
                         Requested by: {req.requesterName} · Target ID: #{req.targetId}
                       </p>
                     </div>
 
                     {isPending && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end sm:justify-start pt-2 sm:pt-0 border-t border-slate-800 sm:border-t-0">
                         <button
                           onClick={() => handleApproval(req.id, false, 'Rejected by supervisor')}
-                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 text-xs font-bold rounded border border-slate-700 flex items-center gap-1"
+                          className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-750 text-rose-400 text-xs font-bold rounded-lg border border-slate-700 flex items-center justify-center gap-1.5 transition-colors"
                         >
                           <X className="w-3.5 h-3.5" />
                           <span>Reject</span>
                         </button>
                         <button
                           onClick={() => handleApproval(req.id, true, 'Approved by supervisor')}
-                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded flex items-center gap-1 shadow-sm"
+                          className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-colors whitespace-nowrap"
                         >
                           <Check className="w-3.5 h-3.5" />
                           <span>Approve & Authorize</span>

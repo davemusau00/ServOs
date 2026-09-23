@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useServOS } from '../../context/ServOSContext';
-import { ProductSellable, RestaurantTable, OrderItem } from '../../types/servos';
+import { ProductSellable, RestaurantTable, OrderItem, Order } from '../../types/servos';
+import { ThermalReceiptModal } from './ThermalReceiptModal';
 import { 
   Wine, 
   Beer, 
@@ -21,7 +22,14 @@ import {
   Gift,
   X,
   QrCode,
-  DollarSign
+  DollarSign,
+  Printer,
+  Search,
+  ArrowRightLeft,
+  Users,
+  ChevronRight,
+  Receipt,
+  Utensils
 } from 'lucide-react';
 
 export const POSView: React.FC = () => {
@@ -39,6 +47,7 @@ export const POSView: React.FC = () => {
     applyCompToItem,
     applyOrderDiscount,
     voidOrder,
+    transferOrderToTable,
     processPayment,
     guestStays,
     guestFolios,
@@ -47,8 +56,12 @@ export const POSView: React.FC = () => {
     isOffline
   } = useServOS();
 
-  // Filter state
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+
+  // Mobile navigation view mode: CATALOG vs TICKET
+  const [mobileViewMode, setMobileViewMode] = useState<'CATALOG' | 'TICKET'>('CATALOG');
   
   // Modals state
   const [activePortionProduct, setActivePortionProduct] = useState<ProductSellable | null>(null);
@@ -72,10 +85,33 @@ export const POSView: React.FC = () => {
   const [compTargetItemId, setCompTargetItemId] = useState<string>('');
   const [compReason, setCompReason] = useState<string>('VIP House Hospitality');
 
-  // Filter products by current category & outlet
+  // Table Transfer Modal
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState<boolean>(false);
+  const [transferTargetTableId, setTransferTargetTableId] = useState<string>('');
+
+  // Bill Split Calculator Modal
+  const [isSplitModalOpen, setIsSplitModalOpen] = useState<boolean>(false);
+  const [splitCount, setSplitCount] = useState<number>(2);
+
+  // Thermal Receipt Modal state
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
+  const [receiptModalOrder, setReceiptModalOrder] = useState<Order | null>(null);
+  const [receiptIsProForma, setReceiptIsProForma] = useState<boolean>(false);
+  const [receiptPaymentDetails, setReceiptPaymentDetails] = useState<any>(undefined);
+
+  // Filter products by current category, outlet & search term
   const filteredProducts = products.filter(p => {
     const outletMatch = p.outletIds.includes(currentOutlet.id);
     if (!outletMatch) return false;
+    
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = p.name.toLowerCase().includes(q);
+      const matchCode = p.code.toLowerCase().includes(q);
+      const matchCategory = p.category.toLowerCase().includes(q);
+      if (!matchName && !matchCode && !matchCategory) return false;
+    }
+
     if (selectedCategory === 'ALL') return true;
     return p.category === selectedCategory;
   });
@@ -92,13 +128,11 @@ export const POSView: React.FC = () => {
   // Helper when clicking product
   const handleProductClick = (prod: ProductSellable) => {
     if (prod.category === 'SPIRITS' && prod.code.startsWith('JAM-')) {
-      // Let user choose between Shot, Double, or Bottle
       setActivePortionProduct(prod);
       return;
     }
 
     if (prod.modifiers && prod.modifiers.length > 0) {
-      // Has customizable recipe modifiers
       setActiveModifierProduct(prod);
       setSelectedModifiers([]);
       return;
@@ -139,6 +173,8 @@ export const POSView: React.FC = () => {
       await new Promise(r => setTimeout(r, 600));
     }
 
+    const currentOrderSnapshot = { ...activeOrder };
+
     const res = await processPayment(activeOrder.id, tenderType, activeOrder.grandTotal, {
       phoneNumber: mpesaPhone,
       cashTendered: cashTendered || activeOrder.grandTotal,
@@ -149,16 +185,91 @@ export const POSView: React.FC = () => {
     setIsProcessing(false);
     setDarajaStep('');
     setPaymentResult(res);
+
+    if (res.success) {
+      // Configure receipt modal state ready for thermal printing
+      const stay = guestStays.find(s => s.id === selectedGuestStayId);
+      setReceiptPaymentDetails({
+        tenderType,
+        receiptRef: res.receipt,
+        cashTendered: tenderType === 'CASH' ? cashTendered : undefined,
+        changeDue: tenderType === 'CASH' ? Math.max(0, cashTendered - currentOrderSnapshot.grandTotal) : undefined,
+        guestName: stay?.guestName,
+        roomNumber: stay?.roomNumber
+      });
+      setReceiptModalOrder(currentOrderSnapshot);
+    }
+  };
+
+  const handleOpenProFormaPrint = () => {
+    if (!activeOrder) return;
+    setReceiptModalOrder(activeOrder);
+    setReceiptIsProForma(true);
+    setReceiptPaymentDetails(undefined);
+    setIsReceiptModalOpen(true);
+  };
+
+  const handleOpenSettledReceiptPrint = () => {
+    if (!receiptModalOrder) return;
+    setReceiptIsProForma(false);
+    setIsReceiptModalOpen(true);
+  };
+
+  const handleTransferTableConfirm = () => {
+    if (!activeOrder || !transferTargetTableId) return;
+    transferOrderToTable(activeOrder.id, transferTargetTableId);
+    setIsTransferModalOpen(false);
+    setTransferTargetTableId('');
   };
 
   const activeTable = activeOrder?.tableId
     ? tables.find(t => t.id === activeOrder.tableId)
     : null;
 
+  const totalItemsCount = activeOrder?.items.reduce((s, it) => s + it.quantity, 0) || 0;
+
   return (
-    <div className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-60px)] overflow-hidden bg-slate-950">
-      {/* LEFT: Floorplan / Tables Bar + Catalog Grid */}
-      <div className="flex-1 flex flex-col overflow-hidden border-r border-slate-800">
+    <div className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden bg-slate-950">
+      {/* MOBILE SEGMENT SELECTOR (< lg) */}
+      <div className="lg:hidden bg-slate-900 border-b border-slate-800 p-2 flex items-center justify-between gap-2 shrink-0">
+        <div className="grid grid-cols-2 w-full gap-1 p-1 bg-slate-950 rounded-lg">
+          <button
+            onClick={() => setMobileViewMode('CATALOG')}
+            className={`py-2 text-xs font-bold rounded-md flex items-center justify-center gap-1.5 transition-all ${
+              mobileViewMode === 'CATALOG'
+                ? 'bg-slate-800 text-white shadow-xs'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Utensils className="w-3.5 h-3.5" />
+            <span>Menu & Tables</span>
+          </button>
+
+          <button
+            onClick={() => setMobileViewMode('TICKET')}
+            className={`py-2 text-xs font-bold rounded-md flex items-center justify-center gap-1.5 transition-all relative ${
+              mobileViewMode === 'TICKET'
+                ? 'bg-amber-500 text-slate-950 shadow-xs'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Receipt className="w-3.5 h-3.5" />
+            <span>Order Ticket</span>
+            {activeOrder && activeOrder.items.length > 0 && (
+              <span className={`px-1.5 py-0.2 text-[10px] font-mono rounded-full ${
+                mobileViewMode === 'TICKET' ? 'bg-slate-950 text-amber-300' : 'bg-amber-500 text-slate-950'
+              }`}>
+                {totalItemsCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* LEFT: Floorplan / Tables Bar + Search + Catalog Grid */}
+      <div className={`flex-1 flex flex-col overflow-hidden border-r border-slate-800 ${
+        mobileViewMode === 'TICKET' ? 'hidden lg:flex' : 'flex'
+      }`}>
         {/* Table & Tab Strip */}
         <div className="bg-slate-900/60 p-2.5 border-b border-slate-800 flex items-center justify-between gap-3 overflow-x-auto scrollbar-none shrink-0">
           <div className="flex items-center gap-2">
@@ -212,80 +323,136 @@ export const POSView: React.FC = () => {
           </div>
         </div>
 
-        {/* Category Filters */}
-        <div className="p-3 bg-slate-900/30 border-b border-slate-800/80 flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${
-                selectedCategory === cat.id
-                  ? 'bg-slate-200 text-slate-950 font-bold shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
+        {/* Search & Category Filter Header */}
+        <div className="p-3 bg-slate-900/40 border-b border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+          {/* Quick Search */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search drinks, steaks, cocktails, packages..."
+              className="w-full bg-slate-900 border border-slate-800 focus:border-amber-400 rounded-lg pl-9 pr-8 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Category Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${
+                  selectedCategory === cat.id
+                    ? 'bg-slate-200 text-slate-950 font-bold shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Catalog Items Grid */}
-        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
-          {filteredProducts.map(prod => {
-            const isPackage = prod.productType === 'PACKAGE';
-            const isRecipe = prod.productType === 'RECIPE';
-            return (
-              <button
-                key={prod.id}
-                onClick={() => handleProductClick(prod)}
-                className={`p-3.5 rounded-lg border text-left flex flex-col justify-between transition-all hover:scale-[1.01] active:scale-[0.99] group ${
-                  isPackage
-                    ? 'bg-gradient-to-b from-amber-950/30 to-slate-900 border-amber-600/40 hover:border-amber-400'
-                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-600 hover:bg-slate-850'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[10px] font-mono tracking-wider text-slate-400 uppercase">
-                      {prod.category}
-                    </span>
-                    {prod.portionUnitSymbol && (
-                      <span className="text-[10px] font-mono text-amber-400 font-semibold">
-                        {prod.portionVolume} {prod.portionUnitSymbol}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3 content-start">
+          {filteredProducts.length === 0 ? (
+            <div className="col-span-full py-12 text-center text-slate-500">
+              <Search className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <p className="text-sm font-medium">No menu items match your filter</p>
+              <p className="text-xs text-slate-600 mt-1">Try searching another keyword or select "All Items".</p>
+            </div>
+          ) : (
+            filteredProducts.map(prod => {
+              const isPackage = prod.productType === 'PACKAGE';
+              const isRecipe = prod.productType === 'RECIPE';
+              return (
+                <button
+                  key={prod.id}
+                  onClick={() => handleProductClick(prod)}
+                  className={`p-3 sm:p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all hover:scale-[1.01] active:scale-[0.99] group ${
+                    isPackage
+                      ? 'bg-gradient-to-b from-amber-950/30 to-slate-900 border-amber-600/40 hover:border-amber-400'
+                      : 'bg-slate-900/80 border-slate-800 hover:border-slate-600 hover:bg-slate-850'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="text-[9.5px] font-mono tracking-wider text-slate-400 uppercase">
+                        {prod.category}
                       </span>
-                    )}
-                    {isPackage && (
-                      <span className="text-[10px] font-mono text-amber-300 bg-amber-500/20 px-1 rounded">
-                        VIP PACKAGE
-                      </span>
+                      {prod.portionUnitSymbol && (
+                        <span className="text-[9.5px] font-mono text-amber-400 font-semibold">
+                          {prod.portionVolume} {prod.portionUnitSymbol}
+                        </span>
+                      )}
+                      {isPackage && (
+                        <span className="text-[9px] font-mono text-amber-300 bg-amber-500/20 px-1 py-0.5 rounded font-bold">
+                          VIP PACKAGE
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="text-xs sm:text-sm font-semibold text-slate-100 group-hover:text-white line-clamp-2">
+                      {prod.name}
+                    </h4>
+                    {isRecipe && (
+                      <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
+                        Recipe with custom ingredients
+                      </p>
                     )}
                   </div>
-                  <h4 className="text-sm font-semibold text-slate-100 group-hover:text-white line-clamp-2">
-                    {prod.name}
-                  </h4>
-                  {isRecipe && (
-                    <p className="text-[11px] text-slate-400 mt-1 line-clamp-1">
-                      Recipe with custom ingredients
-                    </p>
-                  )}
-                </div>
 
-                <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                  <span className="text-xs font-mono text-slate-400">KES</span>
-                  <span className="text-base font-bold font-mono tabular-nums text-amber-300">
-                    {prod.price.toLocaleString()}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
+                  <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                    <span className="text-[11px] font-mono text-slate-400">KES</span>
+                    <span className="text-sm sm:text-base font-bold font-mono tabular-nums text-amber-300">
+                      {prod.price.toLocaleString()}
+                    </span>
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
+
+        {/* MOBILE STICKY FLOATING CART BAR (shows on Catalog tab when ticket has items) */}
+        {activeOrder && activeOrder.items.length > 0 && (
+          <div className="lg:hidden p-3 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md flex items-center justify-between gap-3 shadow-xl shrink-0">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-white font-mono">{activeOrder.orderNumber}</span>
+                <span className="text-[10px] text-slate-400">({totalItemsCount} items)</span>
+              </div>
+              <div className="text-sm font-mono font-bold text-amber-400">
+                KES {activeOrder.grandTotal.toLocaleString()}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setMobileViewMode('TICKET')}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-md"
+            >
+              <span>View Ticket / Pay</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* RIGHT: Active Tab / Order Ledger Sidebar */}
-      <div className="w-full lg:w-[420px] bg-slate-900 flex flex-col h-full shrink-0 border-l border-slate-800">
+      <div className={`w-full lg:w-[430px] bg-slate-900 flex flex-col h-full shrink-0 border-l border-slate-800 ${
+        mobileViewMode === 'CATALOG' ? 'hidden lg:flex' : 'flex'
+      }`}>
         {/* Order Header */}
-        <div className="p-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
+        <div className="p-3 sm:p-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-white font-mono">
@@ -308,6 +475,37 @@ export const POSView: React.FC = () => {
 
           {activeOrder && (
             <div className="flex items-center gap-1">
+              {/* Transfer Table Button */}
+              <button
+                onClick={() => {
+                  setTransferTargetTableId(activeOrder.tableId || '');
+                  setIsTransferModalOpen(true);
+                }}
+                title="Transfer order to another table"
+                className="p-1.5 text-slate-400 hover:text-amber-400 rounded hover:bg-slate-800"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+              </button>
+
+              {/* Split Bill Calculator */}
+              <button
+                onClick={() => setIsSplitModalOpen(true)}
+                title="Split Bill Calculator"
+                className="p-1.5 text-slate-400 hover:text-amber-400 rounded hover:bg-slate-800"
+              >
+                <Users className="w-4 h-4" />
+              </button>
+
+              {/* Print Pro-Forma Bill Check */}
+              <button
+                onClick={handleOpenProFormaPrint}
+                title="Print Pro-Forma / Table Bill Check"
+                className="p-1.5 text-slate-400 hover:text-amber-400 rounded hover:bg-slate-800"
+              >
+                <Printer className="w-4 h-4" />
+              </button>
+
+              {/* Void Order */}
               <button
                 onClick={() => {
                   if (confirm('Void this active order? Manager authorization will be logged.')) {
@@ -337,7 +535,7 @@ export const POSView: React.FC = () => {
             activeOrder.items.map(item => (
               <div
                 key={item.id}
-                className={`p-2.5 rounded border ${
+                className={`p-2.5 rounded-lg border ${
                   item.isComp
                     ? 'bg-emerald-950/20 border-emerald-800/40 text-emerald-200'
                     : 'bg-slate-850/80 border-slate-750'
@@ -413,7 +611,7 @@ export const POSView: React.FC = () => {
                       onClick={() => removeItemFromOrder(item.id)}
                       className="text-slate-400 hover:text-rose-400 p-0.5"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -463,15 +661,26 @@ export const POSView: React.FC = () => {
               </span>
             </div>
 
-            {/* Quick action buttons: Send to KDS, Apply Discount, Settle */}
-            <div className="pt-2 grid grid-cols-3 gap-2">
+            {/* Quick action buttons: Send to KDS, Print Bill, Pay & Settle */}
+            <div className="pt-2 grid grid-cols-4 gap-1.5">
               <button
                 onClick={sendOrderToKitchenAndBar}
                 disabled={activeOrder.items.length === 0}
-                className="py-2 px-2 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 text-slate-200 text-xs font-semibold rounded border border-slate-700 flex items-center justify-center gap-1"
+                className="py-2 px-1 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 text-slate-200 text-xs font-semibold rounded border border-slate-700 flex flex-col items-center justify-center gap-0.5"
+                title="Send ticket to KDS bar & kitchen prep stations"
               >
                 <Send className="w-3.5 h-3.5 text-amber-400" />
-                <span>Send KDS</span>
+                <span className="text-[10px]">Send KDS</span>
+              </button>
+
+              <button
+                onClick={handleOpenProFormaPrint}
+                disabled={activeOrder.items.length === 0}
+                className="py-2 px-1 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 text-slate-200 text-xs font-semibold rounded border border-slate-700 flex flex-col items-center justify-center gap-0.5"
+                title="Print thermal bill check for customer"
+              >
+                <Printer className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-[10px]">Print Bill</span>
               </button>
 
               <button
@@ -485,10 +694,11 @@ export const POSView: React.FC = () => {
                   }
                 }}
                 disabled={activeOrder.items.length === 0}
-                className="py-2 px-2 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 text-slate-200 text-xs font-semibold rounded border border-slate-700 flex items-center justify-center gap-1"
+                className="py-2 px-1 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 text-slate-200 text-xs font-semibold rounded border border-slate-700 flex flex-col items-center justify-center gap-0.5"
+                title="Apply percentage manager discount"
               >
                 <Percent className="w-3.5 h-3.5 text-slate-400" />
-                <span>Discount</span>
+                <span className="text-[10px]">Discount</span>
               </button>
 
               <button
@@ -498,10 +708,10 @@ export const POSView: React.FC = () => {
                   setCashTendered(activeOrder.grandTotal);
                 }}
                 disabled={activeOrder.items.length === 0}
-                className="py-2 px-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded flex items-center justify-center gap-1 shadow-sm"
+                className="py-2 px-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded flex flex-col items-center justify-center gap-0.5 shadow-sm"
               >
                 <Coins className="w-3.5 h-3.5" />
-                <span>Pay & Settle</span>
+                <span className="text-[10px]">Settle</span>
               </button>
             </div>
           </div>
@@ -671,6 +881,126 @@ export const POSView: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL: Table Transfer */}
+      {isTransferModalOpen && activeOrder && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 max-w-sm w-full shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <ArrowRightLeft className="w-4 h-4 text-amber-400" />
+                  <span>Transfer Table</span>
+                </h3>
+                <p className="text-xs text-slate-400">Order #{activeOrder.orderNumber} ({activeOrder.tableName || 'Tab'})</p>
+              </div>
+              <button onClick={() => setIsTransferModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Select Destination Table</label>
+                <select
+                  value={transferTargetTableId}
+                  onChange={e => setTransferTargetTableId(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                >
+                  <option value="">-- Choose destination table --</option>
+                  {tables
+                    .filter(t => t.id !== activeOrder.tableId)
+                    .map(tbl => (
+                      <option key={tbl.id} value={tbl.id}>
+                        {tbl.label} ({tbl.section}) {tbl.currentOrderId ? '⚠️ OCCUPIED' : '✅ AVAILABLE'} {tbl.minimumSpend ? `• Min KES ${tbl.minimumSpend.toLocaleString()}` : ''}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <p className="text-[11px] text-slate-400 bg-slate-850 p-2.5 rounded-lg border border-slate-800">
+                Transferring this order reassigns items and updates minimum-spend calculations if the destination is a VIP table.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                onClick={() => setIsTransferModalOpen(false)}
+                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTransferTableConfirm}
+                disabled={!transferTargetTableId}
+                className="px-4 py-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 rounded-lg"
+              >
+                Confirm Transfer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Split Bill Calculator */}
+      {isSplitModalOpen && activeOrder && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 max-w-sm w-full shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-amber-400" />
+                  <span>Split Bill Calculator</span>
+                </h3>
+                <p className="text-xs text-slate-400">Order #{activeOrder.orderNumber} • KES {activeOrder.grandTotal.toLocaleString()}</p>
+              </div>
+              <button onClick={() => setIsSplitModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-4">
+              <div>
+                <label className="text-xs text-slate-300 block mb-2">Split Evenly Between Guests</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[2, 3, 4, 5].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setSplitCount(n)}
+                      className={`py-2 text-xs font-mono font-bold rounded-lg border transition-all ${
+                        splitCount === n
+                          ? 'bg-amber-500 text-slate-950 border-amber-400'
+                          : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+                      }`}
+                    >
+                      {n} Guests
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center space-y-1">
+                <span className="text-[11px] font-mono text-slate-400 uppercase">Amount per guest:</span>
+                <div className="text-2xl font-bold font-mono text-amber-400 tabular-nums">
+                  KES {(Math.round((activeOrder.grandTotal / splitCount) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
+                <span className="text-[10px] text-slate-500">
+                  {splitCount} payments of KES {(Math.round((activeOrder.grandTotal / splitCount) * 100) / 100).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                onClick={() => setIsSplitModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white rounded-lg"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL: Comp Item */}
       {isCompModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
@@ -713,8 +1043,8 @@ export const POSView: React.FC = () => {
 
       {/* MODAL: Payment / Checkout with M-PESA Daraja & Room Charge */}
       {isCheckoutOpen && activeOrder && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 max-w-xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
@@ -750,7 +1080,7 @@ export const POSView: React.FC = () => {
 
                 <div>
                   <h4 className="text-base font-bold text-white">
-                    {paymentResult.success ? 'Transaction Complete & Posted' : 'Payment Failed'}
+                    {paymentResult.success ? 'Transaction Complete & Fiscalized' : 'Payment Failed'}
                   </h4>
                   <p className="text-xs text-slate-300 mt-1 max-w-sm mx-auto">
                     {paymentResult.message}
@@ -758,7 +1088,7 @@ export const POSView: React.FC = () => {
                 </div>
 
                 {paymentResult.success && (
-                  <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-left font-mono text-xs space-y-1 text-slate-300">
+                  <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-left font-mono text-xs space-y-1.5 text-slate-300">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Tender Reference:</span>
                       <span className="text-amber-300 font-bold">{paymentResult.receipt}</span>
@@ -774,13 +1104,24 @@ export const POSView: React.FC = () => {
                   </div>
                 )}
 
-                <div className="pt-3 flex justify-center gap-3">
+                <div className="pt-3 flex flex-wrap items-center justify-center gap-3">
+                  {/* PRINT THERMAL RECEIPT ACTION BUTTON */}
+                  {paymentResult.success && (
+                    <button
+                      onClick={handleOpenSettledReceiptPrint}
+                      className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg shadow-sm flex items-center gap-2 transition-all"
+                    >
+                      <Printer className="w-4 h-4" />
+                      <span>Print Thermal Receipt (80mm)</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       setIsCheckoutOpen(false);
                       setPaymentResult(null);
                     }}
-                    className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded"
+                    className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg"
                   >
                     Done / Next Order
                   </button>
@@ -898,7 +1239,7 @@ export const POSView: React.FC = () => {
                           key={amt}
                           type="button"
                           onClick={() => setCashTendered(amt)}
-                          className="flex-1 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 font-mono"
+                          className="flex-1 py-1 text-xs bg-slate-800 hover:bg-slate-750 rounded border border-slate-700 font-mono"
                         >
                           KES {amt}
                         </button>
@@ -991,6 +1332,15 @@ export const POSView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* THERMAL RECEIPT MODAL */}
+      <ThermalReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        order={receiptModalOrder}
+        isProForma={receiptIsProForma}
+        paymentDetails={receiptPaymentDetails}
+      />
     </div>
   );
 };

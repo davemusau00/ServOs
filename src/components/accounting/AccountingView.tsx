@@ -49,23 +49,23 @@ export const AccountingView: React.FC = () => {
   const unbalancedCount = journalEntries.filter(j => !j.balanced).length;
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-60px)] bg-slate-950 overflow-hidden">
+    <div className="flex-1 h-full min-h-0 flex flex-col bg-slate-950 overflow-hidden">
       {/* Header */}
-      <div className="bg-slate-900 border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <Scale className="w-5 h-5 text-amber-400" />
+            <Scale className="w-5 h-5 text-amber-400 shrink-0" />
             <span>Double-Entry General Ledger & Kenya eTIMS Fiscal Engine</span>
           </h2>
-          <p className="text-xs text-slate-400 font-mono">
+          <p className="text-xs text-slate-400 font-mono mt-0.5 line-clamp-1">
             Native Double-Entry Posting Rules, Invariant Audits & Certified KRA OSCU/VSCU Fiscalizer
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs font-mono">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span className="text-slate-300">Invariant Balance Check:</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="text-slate-300 hidden sm:inline">Invariant Check:</span>
             {unbalancedCount === 0 ? (
               <span className="text-emerald-400 font-bold">100% BALANCED</span>
             ) : (
@@ -73,45 +73,45 @@ export const AccountingView: React.FC = () => {
             )}
           </div>
 
-          <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setActiveTab('JOURNALS')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                activeTab === 'JOURNALS' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'JOURNALS' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Journal Entries ({journalEntries.length})
+              Journals ({journalEntries.length})
             </button>
             <button
               onClick={() => setActiveTab('ETIMS')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                activeTab === 'ETIMS' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'ETIMS' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Kenya eTIMS Invoices ({etimsInvoices.length})
+              eTIMS ({etimsInvoices.length})
             </button>
             <button
               onClick={() => setActiveTab('COA')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                activeTab === 'COA' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'COA' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Chart of Accounts ({accounts.length})
+              Accounts ({accounts.length})
             </button>
             <button
               onClick={() => setActiveTab('STATEMENTS')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                activeTab === 'STATEMENTS' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'STATEMENTS' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              P&L & Balance Sheet
+              P&L & BS
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 lg:pb-8">
         {/* VIEW 1: Journal Entries Stream */}
         {activeTab === 'JOURNALS' && (
           <div className="space-y-3">

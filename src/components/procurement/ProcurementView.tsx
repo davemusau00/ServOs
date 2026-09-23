@@ -38,49 +38,49 @@ export const ProcurementView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-60px)] bg-slate-950 overflow-hidden">
+    <div className="flex-1 h-full min-h-0 flex flex-col bg-slate-950 overflow-hidden">
       {/* Header */}
-      <div className="bg-slate-900 border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <Truck className="w-5 h-5 text-amber-400" />
+            <Truck className="w-5 h-5 text-amber-400 shrink-0" />
             <span>Procurement & Accounts Payable</span>
           </h2>
-          <p className="text-xs text-slate-400 font-mono">
+          <p className="text-xs text-slate-400 font-mono mt-0.5 line-clamp-1">
             Purchase Orders, Goods Receipt (GRN), 3-Way Match & AP Aging
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setActiveTab('POS')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                activeTab === 'POS' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'POS' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Purchase Orders ({purchaseOrders.length})
             </button>
             <button
               onClick={() => setActiveTab('MATCH')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                activeTab === 'MATCH' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'MATCH' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               3-Way Match Audit
             </button>
             <button
               onClick={() => setActiveTab('AGING')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                activeTab === 'AGING' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'AGING' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               AP Aging Ledger
             </button>
             <button
               onClick={() => setActiveTab('SUPPLIERS')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
-                activeTab === 'SUPPLIERS' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'SUPPLIERS' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Suppliers ({suppliers.length})
@@ -89,7 +89,7 @@ export const ProcurementView: React.FC = () => {
 
           <button
             onClick={() => setIsNewPoOpen(true)}
-            className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded flex items-center gap-1.5 shadow-sm"
+            className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             <span>+ Create PO</span>
@@ -98,7 +98,7 @@ export const ProcurementView: React.FC = () => {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 lg:pb-8">
         {activeTab === 'POS' && (
           <div className="space-y-4">
             <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">
