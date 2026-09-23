@@ -10,7 +10,16 @@ import {
   Cpu, 
   FileText, 
   Receipt,
-  Download
+  Download,
+  Settings2,
+  Sliders,
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  Phone,
+  Building2,
+  Hash,
+  Sparkles
 } from 'lucide-react';
 
 interface ThermalReceiptModalProps {
@@ -35,9 +44,27 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
   paymentDetails,
   isProForma = false
 }) => {
-  const { currentProperty, currentOutlet, triggerEdgePrint, etimsInvoices } = useServOS();
+  const { currentProperty, currentOutlet, triggerEdgePrint, etimsInvoices, edgeDevices } = useServOS();
   const [copied, setCopied] = useState<boolean>(false);
   const [edgeSent, setEdgeSent] = useState<boolean>(false);
+  const [selectedPrinter, setSelectedPrinter] = useState<string>('printer-fiscal-01');
+  const [paperWidth, setPaperWidth] = useState<'80mm' | '58mm'>('80mm');
+  const [showCustomizer, setShowCustomizer] = useState<boolean>(false);
+
+  // Customizable Receipt Header & Metadata Information
+  const [headerInfo, setHeaderInfo] = useState({
+    businessName: 'SERVOS HOSPITALITY SUITE',
+    propertyName: currentProperty?.name || 'SIMBA PALACE & RESORT',
+    outletName: currentOutlet?.name || 'Main Terrace Lounge & Bar',
+    address: 'Simba Avenue, Westlands, Nairobi, Kenya',
+    telephone: '+254 700 123 456 / +254 722 987 654',
+    kraPin: currentProperty?.kraPin || 'P051982736Z',
+    cuSerialNumber: currentProperty?.etimsCuNumber || 'KRA-OSCU-NBO-00914',
+    customGreeting: 'WELCOME TO EXQUISITE HOSPITALITY',
+    customFooter: 'Goods once ordered and served are non-refundable. Service charge included.',
+    showQrCode: true,
+    showTaxDetails: true
+  });
 
   if (!isOpen || !order) return null;
 
@@ -49,12 +76,24 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
     timeStyle: 'medium'
   });
 
+  // Printers available
+  const printerDevices = [
+    { id: 'printer-fiscal-01', name: 'KRA Fiscal OSCU Printer (LAN 192.168.1.102)', type: 'KRA Fiscal Hardware' },
+    { id: 'printer-bar-01', name: 'Main Bar Thermal 80mm (LAN 192.168.1.101)', type: 'POS Receipt' },
+    { id: 'printer-kitchen-01', name: 'Kitchen Hot Line (LAN 192.168.1.104)', type: 'KDS Ticket' },
+    { id: 'printer-browser', name: 'Browser / Standard AirPrint Dialog', type: 'Local System' }
+  ];
+
   const generateRawEscPos = () => {
     let text = `================================================\n`;
-    text += `          SERVOS HOSPITALITY SUITE\n`;
-    text += `         ${currentProperty.name.toUpperCase()}\n`;
-    text += `            ${currentOutlet.name}\n`;
-    text += `KRA PIN: P051982736Z  |  CU: KRA-OSCU-NBO-00914\n`;
+    text += `          ${headerInfo.businessName.toUpperCase()}\n`;
+    text += `         ${headerInfo.propertyName.toUpperCase()}\n`;
+    text += `            ${headerInfo.outletName}\n`;
+    text += `Location: ${headerInfo.address}\n`;
+    text += `Tel: ${headerInfo.telephone}\n`;
+    if (headerInfo.showTaxDetails) {
+      text += `KRA PIN: ${headerInfo.kraPin}  |  CU: ${headerInfo.cuSerialNumber}\n`;
+    }
     text += `------------------------------------------------\n`;
     text += isProForma 
       ? `               *** BILL CHECK / PRO-FORMA ***\n` 
@@ -110,15 +149,17 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
       if (paymentDetails.roomNumber) {
         text += `Room: ${paymentDetails.roomNumber} - Guest: ${paymentDetails.guestName}\n`;
       }
-      text += `------------------------------------------------\n`;
-      text += `KRA eTIMS Verification URL:\nhttps://itax.kra.go.ke/KRA-Portal/invoiceVerification\n`;
-      text += `Invoice No: ${fiscalInvoice?.invoiceNumber || 'INV-2026-0923-' + order.orderNumber.replace('ORD-', '')}\n`;
-      text += `Verification Hash: eT-78f9c10a48b301\n`;
+      if (headerInfo.showTaxDetails) {
+        text += `------------------------------------------------\n`;
+        text += `KRA eTIMS Verification URL:\nhttps://itax.kra.go.ke/KRA-Portal/invoiceVerification\n`;
+        text += `Invoice No: ${fiscalInvoice?.invoiceNumber || 'INV-2026-0923-' + order.orderNumber.replace('ORD-', '')}\n`;
+        text += `Verification Hash: eT-78f9c10a48b301\n`;
+      }
     }
 
     text += `------------------------------------------------\n`;
-    text += `          THANK YOU FOR VISITING US!\n`;
-    text += `         Powered by ServOS Hospitality\n`;
+    text += `          ${headerInfo.customGreeting}\n`;
+    text += `     ${headerInfo.customFooter}\n`;
     text += `================================================\n`;
     return text;
   };
@@ -128,9 +169,13 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
   };
 
   const handleSendEdgePrint = () => {
+    const selectedDev = printerDevices.find(p => p.id === selectedPrinter);
     triggerEdgePrint('RECEIPT', {
       orderId: order.id,
       orderNumber: order.orderNumber,
+      printer: selectedDev?.name || selectedPrinter,
+      paperWidth,
+      header: headerInfo,
       tableName: order.tableName || order.tabName,
       grandTotal: order.grandTotal,
       isProForma
@@ -148,18 +193,23 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
   return (
     <>
       {/* 1. Modal Overlay for Screen Display */}
-      <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 no-print overflow-y-auto">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden my-auto">
+      <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 no-print overflow-y-auto">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-auto flex flex-col max-h-[92vh]">
           {/* Header */}
-          <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+          <div className="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 shrink-0">
             <div className="flex items-center gap-2.5">
-              <Receipt className="w-5 h-5 text-amber-400" />
+              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                <Receipt className="w-5 h-5" />
+              </div>
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-white">
-                  {isProForma ? 'Table Bill Check / Pro-Forma' : 'ESC/POS Thermal Receipt'}
+                <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                  <span>{isProForma ? 'Table Bill Check / Pro-Forma' : 'ESC/POS Thermal Receipt Print Preview'}</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                    {paperWidth}
+                  </span>
                 </h3>
                 <p className="text-[11px] text-slate-400 font-mono">
-                  80mm Roll • High-Contrast POS Thermal Output
+                  Real-time thermal rendering with customizable header, printer routing & ESC/POS emulation
                 </p>
               </div>
             </div>
@@ -171,24 +221,194 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
             </button>
           </div>
 
+          {/* Quick Settings & Customizer Bar */}
+          <div className="px-5 py-2.5 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+            <div className="flex items-center gap-2">
+              <label className="text-slate-400 font-mono text-[11px]">Printer Target:</label>
+              <select
+                value={selectedPrinter}
+                onChange={e => setSelectedPrinter(e.target.value)}
+                className="bg-slate-800 border border-slate-700 text-slate-200 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-amber-400 font-mono"
+              >
+                {printerDevices.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-[11px]">
+                <button
+                  onClick={() => setPaperWidth('80mm')}
+                  className={`px-2 py-1 rounded font-mono font-bold transition-colors ${
+                    paperWidth === '80mm' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  80mm Standard
+                </button>
+                <button
+                  onClick={() => setPaperWidth('58mm')}
+                  className={`px-2 py-1 rounded font-mono font-bold transition-colors ${
+                    paperWidth === '58mm' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  58mm Compact
+                </button>
+              </div>
+
+              <button
+                onClick={() => setShowCustomizer(!showCustomizer)}
+                className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                  showCustomizer 
+                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' 
+                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-750'
+                }`}
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+                <span>Customize Header</span>
+                {showCustomizer ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Collapsible Header Customization Drawer */}
+          {showCustomizer && (
+            <div className="p-4 bg-slate-900 border-b border-slate-800 text-xs font-mono grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-in slide-in-from-top duration-150 shrink-0 max-h-48 overflow-y-auto">
+              <div>
+                <label className="text-slate-400 block mb-1">Business Header Title</label>
+                <input
+                  type="text"
+                  value={headerInfo.businessName}
+                  onChange={e => setHeaderInfo({ ...headerInfo, businessName: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-750 rounded p-1.5 text-slate-200 text-xs focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">Property / Branch</label>
+                <input
+                  type="text"
+                  value={headerInfo.propertyName}
+                  onChange={e => setHeaderInfo({ ...headerInfo, propertyName: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-750 rounded p-1.5 text-slate-200 text-xs focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">Outlet / Station</label>
+                <input
+                  type="text"
+                  value={headerInfo.outletName}
+                  onChange={e => setHeaderInfo({ ...headerInfo, outletName: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-750 rounded p-1.5 text-slate-200 text-xs focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">Physical Address</label>
+                <input
+                  type="text"
+                  value={headerInfo.address}
+                  onChange={e => setHeaderInfo({ ...headerInfo, address: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-750 rounded p-1.5 text-slate-200 text-xs focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">Telephone / Hotline</label>
+                <input
+                  type="text"
+                  value={headerInfo.telephone}
+                  onChange={e => setHeaderInfo({ ...headerInfo, telephone: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-750 rounded p-1.5 text-slate-200 text-xs focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">Custom Header Greeting</label>
+                <input
+                  type="text"
+                  value={headerInfo.customGreeting}
+                  onChange={e => setHeaderInfo({ ...headerInfo, customGreeting: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-750 rounded p-1.5 text-slate-200 text-xs focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">KRA PIN Number</label>
+                <input
+                  type="text"
+                  value={headerInfo.kraPin}
+                  onChange={e => setHeaderInfo({ ...headerInfo, kraPin: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-750 rounded p-1.5 text-slate-200 text-xs focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">eTIMS CU Serial</label>
+                <input
+                  type="text"
+                  value={headerInfo.cuSerialNumber}
+                  onChange={e => setHeaderInfo({ ...headerInfo, cuSerialNumber: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-750 rounded p-1.5 text-slate-200 text-xs focus:border-amber-400"
+                />
+              </div>
+
+              <div className="flex items-center gap-4 pt-4">
+                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={headerInfo.showQrCode}
+                    onChange={e => setHeaderInfo({ ...headerInfo, showQrCode: e.target.checked })}
+                    className="accent-amber-500 rounded"
+                  />
+                  <span>Show QR</span>
+                </label>
+                <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={headerInfo.showTaxDetails}
+                    onChange={e => setHeaderInfo({ ...headerInfo, showTaxDetails: e.target.checked })}
+                    className="accent-amber-500 rounded"
+                  />
+                  <span>Show Fiscal PIN</span>
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* Body: Thermal Paper Emulation Preview */}
-          <div className="p-4 sm:p-6 bg-slate-950/80 max-h-[68vh] overflow-y-auto flex flex-col items-center">
-            {/* The Paper Ticket */}
-            <div className="w-full max-w-[340px] bg-white text-slate-950 font-mono text-[11px] leading-tight p-5 shadow-2xl rounded-sm border border-slate-200 select-all">
+          <div className="p-4 sm:p-6 bg-slate-950/90 overflow-y-auto flex-1 flex flex-col items-center">
+            {/* The Paper Ticket with simulated thermal paper jagged tear */}
+            <div 
+              className={`w-full bg-white text-slate-950 font-mono text-[11px] leading-tight p-5 shadow-2xl rounded-xs border border-slate-200 select-all transition-all duration-200 ${
+                paperWidth === '80mm' ? 'max-w-[360px]' : 'max-w-[280px] text-[10px]'
+              }`}
+            >
               {/* Receipt Header */}
               <div className="text-center space-y-0.5 pb-2">
                 <div className="font-extrabold text-sm tracking-wide">
-                  SERVOS HOSPITALITY
+                  {headerInfo.businessName}
                 </div>
                 <div className="font-bold text-[10px] text-slate-800 uppercase">
-                  {currentProperty.name}
+                  {headerInfo.propertyName}
                 </div>
                 <div className="text-[10px] text-slate-700">
-                  {currentOutlet.name}
+                  {headerInfo.outletName}
                 </div>
-                <div className="text-[10px] text-slate-600 font-semibold pt-0.5">
-                  PIN: P051982736Z | CU: KRA-OSCU-NBO-00914
+                <div className="text-[9.5px] text-slate-600">
+                  {headerInfo.address}
                 </div>
+                <div className="text-[9.5px] text-slate-600">
+                  Tel: {headerInfo.telephone}
+                </div>
+                {headerInfo.showTaxDetails && (
+                  <div className="text-[10px] text-slate-700 font-semibold pt-0.5">
+                    PIN: {headerInfo.kraPin} | CU: {headerInfo.cuSerialNumber}
+                  </div>
+                )}
                 <div className="border-b border-dashed border-slate-400 my-2" />
                 <div className="font-bold text-xs uppercase tracking-wider text-slate-900">
                   {isProForma ? '*** PRO-FORMA BILL CHECK ***' : '*** OFFICIAL FISCAL RECEIPT ***'}
@@ -277,14 +497,18 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
                   <span>Subtotal (Ex-Tax)</span>
                   <span className="tabular-nums">KES {order.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Output VAT (16%)</span>
-                  <span className="tabular-nums">KES {order.taxTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Catering Levy (2%)</span>
-                  <span className="tabular-nums">KES {order.cateringLevyTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
+                {headerInfo.showTaxDetails && (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Output VAT (16%)</span>
+                      <span className="tabular-nums">KES {order.taxTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Catering Levy (2%)</span>
+                      <span className="tabular-nums">KES {order.cateringLevyTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </>
+                )}
 
                 {order.shortfallAdjustment > 0 && (
                   <div className="flex justify-between text-amber-900 font-bold">
@@ -347,7 +571,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
               )}
 
               {/* eTIMS QR Block */}
-              {!isProForma && (
+              {!isProForma && headerInfo.showQrCode && (
                 <div className="pt-2 text-center border-t border-dashed border-slate-400 mt-2">
                   <div className="text-[9px] font-bold uppercase tracking-wider text-slate-700 mb-1">
                     Kenya Revenue Authority • eTIMS
@@ -359,7 +583,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
                   </div>
 
                   <div className="text-[8.5px] text-slate-600 font-mono mt-1 break-all">
-                    CU: KRA-OSCU-NBO-00914<br />
+                    CU: {headerInfo.cuSerialNumber}<br />
                     INV: {fiscalInvoice?.invoiceNumber || `INV-2026-0923-${order.orderNumber.replace('ORD-', '')}`}<br />
                     Hash: eT-9f82...84a1 [VERIFIED]
                   </div>
@@ -369,9 +593,9 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
               {/* Footer */}
               <div className="text-center pt-3 space-y-0.5 text-[9px] text-slate-600">
                 <div className="font-semibold text-slate-800">
-                  {isProForma ? 'PLEASE PRESENT TO CASHIER WHEN READY TO PAY' : 'THANK YOU FOR YOUR PATRONAGE!'}
+                  {isProForma ? 'PLEASE PRESENT TO CASHIER WHEN READY TO PAY' : headerInfo.customGreeting}
                 </div>
-                <div>Goods once sold are subject to venue policy</div>
+                <div>{headerInfo.customFooter}</div>
                 <div className="text-[8px] text-slate-400 pt-1 font-mono">
                   SERVOS ERP • FASTIFY-REACT MONOLITH
                 </div>
@@ -380,7 +604,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
           </div>
 
           {/* Action Footer */}
-          <div className="p-4 bg-slate-900 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="p-4 bg-slate-900 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopyRaw}
@@ -397,7 +621,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
                 title="Send raw ESC/POS bytes directly to Edge LAN printer bridge"
               >
                 <Cpu className="w-3.5 h-3.5 text-amber-400" />
-                <span>{edgeSent ? 'Sent to LAN!' : 'Edge LAN Printer'}</span>
+                <span>{edgeSent ? 'Sent to LAN Printer!' : 'Send to Edge LAN'}</span>
               </button>
             </div>
 
@@ -414,7 +638,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
                 className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-all"
               >
                 <Printer className="w-4 h-4" />
-                <span>Print Thermal Receipt (80mm)</span>
+                <span>Print Receipt ({paperWidth})</span>
               </button>
             </div>
           </div>
@@ -425,10 +649,16 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
       <div id="thermal-receipt-print-root" className="hidden">
         <div className="thermal-receipt-body">
           <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-            <div style={{ fontWeight: 'bold', fontSize: '13px' }}>SERVOS HOSPITALITY</div>
-            <div style={{ fontSize: '10px', textTransform: 'uppercase' }}>{currentProperty.name}</div>
-            <div style={{ fontSize: '10px' }}>{currentOutlet.name}</div>
-            <div style={{ fontSize: '9px', marginTop: '2px' }}>PIN: P051982736Z | CU: KRA-OSCU-NBO-00914</div>
+            <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{headerInfo.businessName}</div>
+            <div style={{ fontSize: '10px', textTransform: 'uppercase' }}>{headerInfo.propertyName}</div>
+            <div style={{ fontSize: '10px' }}>{headerInfo.outletName}</div>
+            <div style={{ fontSize: '9px' }}>{headerInfo.address}</div>
+            <div style={{ fontSize: '9px' }}>Tel: {headerInfo.telephone}</div>
+            {headerInfo.showTaxDetails && (
+              <div style={{ fontSize: '9px', marginTop: '2px' }}>
+                PIN: {headerInfo.kraPin} | CU: {headerInfo.cuSerialNumber}
+              </div>
+            )}
             <div style={{ borderBottom: '1px dashed #000', margin: '6px 0' }} />
             <div style={{ fontWeight: 'bold', fontSize: '11px' }}>
               {isProForma ? '*** PRO-FORMA BILL CHECK ***' : '*** FISCAL TAX RECEIPT ***'}
@@ -482,14 +712,18 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
               <span>Subtotal (Ex-Tax)</span>
               <span>KES {order.subtotal.toFixed(2)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Output VAT (16%)</span>
-              <span>KES {order.taxTotal.toFixed(2)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Catering Levy (2%)</span>
-              <span>KES {order.cateringLevyTotal.toFixed(2)}</span>
-            </div>
+            {headerInfo.showTaxDetails && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Output VAT (16%)</span>
+                  <span>KES {order.taxTotal.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Catering Levy (2%)</span>
+                  <span>KES {order.cateringLevyTotal.toFixed(2)}</span>
+                </div>
+              </>
+            )}
             {order.shortfallAdjustment > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>VIP Min-Spend Shortfall</span>
@@ -540,19 +774,21 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
               {paymentDetails?.roomNumber && (
                 <div>Room: {paymentDetails.roomNumber} - {paymentDetails.guestName}</div>
               )}
-              <div style={{ textAlign: 'center', marginTop: '8px', borderTop: '1px dashed #000', paddingTop: '6px' }}>
-                <div style={{ fontSize: '8.5px' }}>KRA eTIMS VERIFICATION URL:</div>
-                <div style={{ fontSize: '8px' }}>https://itax.kra.go.ke/KRA-Portal/invoiceVerification</div>
-                <div style={{ fontSize: '8.5px', marginTop: '2px' }}>
-                  INV: {fiscalInvoice?.invoiceNumber || `INV-2026-0923-${order.orderNumber.replace('ORD-', '')}`}
+              {headerInfo.showTaxDetails && (
+                <div style={{ textAlign: 'center', marginTop: '8px', borderTop: '1px dashed #000', paddingTop: '6px' }}>
+                  <div style={{ fontSize: '8.5px' }}>KRA eTIMS VERIFICATION URL:</div>
+                  <div style={{ fontSize: '8px' }}>https://itax.kra.go.ke/KRA-Portal/invoiceVerification</div>
+                  <div style={{ fontSize: '8.5px', marginTop: '2px' }}>
+                    INV: {fiscalInvoice?.invoiceNumber || `INV-2026-0923-${order.orderNumber.replace('ORD-', '')}`}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
           <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '9px' }}>
-            <div>{isProForma ? 'PLEASE PAY CASHIER' : 'THANK YOU FOR VISITING SERVOS!'}</div>
-            <div style={{ fontSize: '8px' }}>System: ServOS Hospitality Platform v1.0</div>
+            <div>{isProForma ? 'PLEASE PAY CASHIER' : headerInfo.customGreeting}</div>
+            <div style={{ fontSize: '8px' }}>{headerInfo.customFooter}</div>
           </div>
         </div>
       </div>

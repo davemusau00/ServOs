@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useServOS } from '../../context/ServOSContext';
+import { calculatePredictiveInventory, PredictiveStockAnalysis } from '../../utils/predictiveStock';
 import { 
   Search, 
   X, 
@@ -15,10 +16,13 @@ import {
   Tag,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Building2,
   Clock,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  TrendingDown,
+  Flame
 } from 'lucide-react';
 
 export type SearchCategory = 'ALL' | 'PRODUCTS' | 'GUESTS' | 'FINANCE' | 'STAFF' | 'INVENTORY';
@@ -38,6 +42,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     products,
     stockItems,
     stockLocations,
+    stockMovements,
     hotelRooms,
     guestStays,
     guestFolios,
@@ -54,6 +59,15 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Compute Predictive Stock Analytics across inventory
+  const predictiveList = useMemo(() => {
+    return calculatePredictiveInventory(stockItems, stockMovements);
+  }, [stockItems, stockMovements]);
+
+  const urgentPredictiveAlerts = useMemo(() => {
+    return predictiveList.filter(p => p.urgencyLevel === 'CRITICAL' || p.urgencyLevel === 'WARNING');
+  }, [predictiveList]);
 
   useEffect(() => {
     if (isOpen) {
@@ -260,24 +274,38 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       });
     }
 
-    // 5. Inventory & Stock Items
+    // 5. Inventory & Stock Items (Enriched with Predictive AI Analytics)
     if (selectedCategory === 'ALL' || selectedCategory === 'INVENTORY') {
       stockItems.forEach(stk => {
         const totalUnits = Object.values(stk.currentStock).reduce((a, b) => a + b, 0);
+        const pred = predictiveList.find(p => p.stockItemId === stk.id);
         const matches = !q ||
           stk.name.toLowerCase().includes(q) ||
           stk.code.toLowerCase().includes(q) ||
           stk.category.toLowerCase().includes(q);
 
         if (matches) {
+          const isCritical = pred?.urgencyLevel === 'CRITICAL';
+          const isWarning = pred?.urgencyLevel === 'WARNING';
+
           results.push({
             id: `stk-${stk.id}`,
             category: 'INVENTORY',
             title: stk.name,
-            subtitle: `SKU: ${stk.code} • ${stk.category} • Cost: KES ${stk.averageUnitCost.toFixed(2)}/${stk.baseUnit}`,
-            badge: `${totalUnits} ${stk.baseUnit}`,
-            badgeColor: totalUnits < (stk.reorderPoint || 10) ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-            extraInfo: `Par: ${stk.parLevel} ${stk.baseUnit}`,
+            subtitle: pred 
+              ? `Dynamic ROP: ${pred.dynamicReorderPoint} ${stk.baseUnit} • Run Rate: ${pred.averageDailyConsumption} ${stk.baseUnit}/day • ${pred.daysOfInventoryRemaining.toFixed(1)} days left`
+              : `SKU: ${stk.code} • ${stk.category} • Cost: KES ${stk.averageUnitCost.toFixed(2)}/${stk.baseUnit}`,
+            badge: isCritical 
+              ? `⚠️ ${pred?.daysOfInventoryRemaining.toFixed(1)}d LEFT (CRITICAL)` 
+              : isWarning 
+              ? `REORDER (${totalUnits} ${stk.baseUnit})` 
+              : `${totalUnits} ${stk.baseUnit}`,
+            badgeColor: isCritical 
+              ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse' 
+              : isWarning 
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' 
+              : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+            extraInfo: pred ? `Lead: ${pred.leadTimeDays}d · Par: ${stk.parLevel}` : `Par: ${stk.parLevel}`,
             targetTab: 'inventory',
             icon: Boxes
           });
@@ -400,6 +428,59 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             {searchResults.length} match{searchResults.length === 1 ? '' : 'es'}
           </span>
         </div>
+
+        {/* URGENT PREDICTIVE LOW-STOCK ALERTS BANNER */}
+        {urgentPredictiveAlerts.length > 0 && (selectedCategory === 'ALL' || selectedCategory === 'INVENTORY') && (
+          <div className="mx-3 my-2 p-3 bg-gradient-to-r from-rose-950/60 via-amber-950/40 to-slate-900 border border-rose-500/40 rounded-xl shadow-lg shrink-0">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-rose-500/20">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 animate-bounce" />
+                <span className="text-xs font-bold text-rose-200 uppercase tracking-wide">
+                  Urgent Predictive Low-Stock Alerts ({urgentPredictiveAlerts.length} Items at Risk)
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  onNavigateTab('inventory');
+                  onClose();
+                }}
+                className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 font-mono transition-colors"
+              >
+                <span>Open Inventory Forecasting</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              {urgentPredictiveAlerts.slice(0, 2).map(item => (
+                <div 
+                  key={item.stockItemId}
+                  onClick={() => {
+                    onNavigateTab('inventory');
+                    onClose();
+                  }}
+                  className="p-2 bg-slate-950/80 hover:bg-slate-900 border border-rose-500/30 rounded-lg flex items-center justify-between cursor-pointer transition-all group"
+                >
+                  <div className="min-w-0 pr-2">
+                    <div className="font-bold text-xs text-white truncate group-hover:text-amber-300">
+                      {item.name}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      Run Rate: {item.averageDailyConsumption} {item.baseUnit}/day • {item.daysOfInventoryRemaining.toFixed(1)} days supply
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                      item.urgencyLevel === 'CRITICAL' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    }`}>
+                      {item.urgencyLevel === 'CRITICAL' ? 'CRITICAL' : 'REORDER'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Results List */}
         <div 

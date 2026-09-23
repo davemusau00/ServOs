@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useServOS } from '../../context/ServOSContext';
 import { StockItem, StockMovement } from '../../types/servos';
+import { calculatePredictiveInventory, PredictiveStockAnalysis } from '../../utils/predictiveStock';
 import { 
   Package, 
   ArrowRightLeft, 
@@ -10,9 +11,22 @@ import {
   AlertTriangle,
   History,
   TrendingDown,
+  TrendingUp,
   Layers,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Cpu,
+  Sparkles,
+  Calendar,
+  Truck,
+  ShieldAlert,
+  Clock,
+  CheckCircle2,
+  ShoppingCart,
+  DollarSign,
+  Activity,
+  Zap,
+  Info
 } from 'lucide-react';
 
 export const InventoryView: React.FC = () => {
@@ -26,7 +40,7 @@ export const InventoryView: React.FC = () => {
     showToast
   } = useServOS();
 
-  const [activeTab, setActiveTab] = useState<'ITEMS' | 'MOVEMENTS' | 'AVT'>('ITEMS');
+  const [activeTab, setActiveTab] = useState<'ITEMS' | 'PREDICTIVE' | 'AVT' | 'MOVEMENTS'>('ITEMS');
 
   // Modals
   const [isTransferOpen, setIsTransferOpen] = useState<boolean>(false);
@@ -51,10 +65,44 @@ export const InventoryView: React.FC = () => {
   // Movement filter
   const [movementFilter, setMovementFilter] = useState<string>('ALL');
 
+  // Predictive ROP Filter
+  const [predictiveFilter, setPredictiveFilter] = useState<'ALL' | 'CRITICAL' | 'WARNING' | 'HEALTHY'>('ALL');
+
+  // Compute Predictive Stock Analytics
+  const predictiveList = useMemo(() => {
+    return calculatePredictiveInventory(stockItems, stockMovements);
+  }, [stockItems, stockMovements]);
+
+  const criticalItems = useMemo(() => {
+    return predictiveList.filter(p => p.urgencyLevel === 'CRITICAL');
+  }, [predictiveList]);
+
+  const warningItems = useMemo(() => {
+    return predictiveList.filter(p => p.urgencyLevel === 'WARNING');
+  }, [predictiveList]);
+
+  const filteredPredictive = useMemo(() => {
+    if (predictiveFilter === 'ALL') return predictiveList;
+    return predictiveList.filter(p => p.urgencyLevel === predictiveFilter);
+  }, [predictiveList, predictiveFilter]);
+
   const filteredMovements = stockMovements.filter(m => {
     if (movementFilter === 'ALL') return true;
     return m.movementType === movementFilter;
   });
+
+  const totalReplenishmentCost = useMemo(() => {
+    return predictiveList
+      .filter(p => p.urgencyLevel === 'CRITICAL' || p.urgencyLevel === 'WARNING')
+      .reduce((acc, p) => acc + p.estimatedReplenishmentCost, 0);
+  }, [predictiveList]);
+
+  const handleQuickReorder = (item: PredictiveStockAnalysis) => {
+    showToast(
+      `Reorder Request Generated: PO drafted for ${item.suggestedReorderQuantity} ${item.baseUnit} of ${item.name} with ${item.supplierName} (Est. KES ${item.estimatedReplenishmentCost.toLocaleString()})`,
+      'info'
+    );
+  };
 
   return (
     <div className="flex-1 h-full min-h-0 flex flex-col bg-slate-950 overflow-hidden">
@@ -66,7 +114,7 @@ export const InventoryView: React.FC = () => {
             <span>Beverage Yield & Inventory Ledger Engine</span>
           </h2>
           <p className="text-xs text-slate-400 font-mono mt-0.5 line-clamp-1">
-            Dimensionally-Safe Base Units (ml, g, units), Actual-vs-Theoretical (AvT) & Movement Audits
+            Predictive Reorder Points (ROP), Historical Consumption Velocity, Dimensionally-Safe Units & AvT Yields
           </p>
         </div>
 
@@ -81,7 +129,27 @@ export const InventoryView: React.FC = () => {
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Stock Items
+              Stock Items ({stockItems.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('PREDICTIVE')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'PREDICTIVE'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5 text-amber-400" />
+              <span>Predictive ROP</span>
+              {(criticalItems.length > 0 || warningItems.length > 0) && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold font-mono ${
+                  activeTab === 'PREDICTIVE' 
+                    ? 'bg-slate-950 text-rose-400' 
+                    : criticalItems.length > 0 ? 'bg-rose-500/30 text-rose-300 border border-rose-500/40 animate-pulse' : 'bg-amber-500/20 text-amber-300'
+                }`}>
+                  {criticalItems.length + warningItems.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('AVT')}
@@ -108,8 +176,10 @@ export const InventoryView: React.FC = () => {
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => {
-                setTransferItemId(stockItems[0].id);
-                setIsTransferOpen(true);
+                if (stockItems.length > 0) {
+                  setTransferItemId(stockItems[0].id);
+                  setIsTransferOpen(true);
+                }
               }}
               className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
             >
@@ -119,8 +189,10 @@ export const InventoryView: React.FC = () => {
 
             <button
               onClick={() => {
-                setWasteItemId(stockItems[0].id);
-                setIsWasteOpen(true);
+                if (stockItems.length > 0) {
+                  setWasteItemId(stockItems[0].id);
+                  setIsWasteOpen(true);
+                }
               }}
               className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
             >
@@ -130,8 +202,10 @@ export const InventoryView: React.FC = () => {
 
             <button
               onClick={() => {
-                setStocktakeItemId(stockItems[0].id);
-                setIsStocktakeOpen(true);
+                if (stockItems.length > 0) {
+                  setStocktakeItemId(stockItems[0].id);
+                  setIsStocktakeOpen(true);
+                }
               }}
               className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
             >
@@ -142,72 +216,351 @@ export const InventoryView: React.FC = () => {
         </div>
       </div>
 
+      {/* Urgent Global Predictive Stockout Banner */}
+      {criticalItems.length > 0 && activeTab !== 'PREDICTIVE' && (
+        <div className="bg-rose-950/70 border-b border-rose-500/40 px-4 py-2.5 flex items-center justify-between text-xs text-rose-200 shrink-0">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400 animate-bounce" />
+            <span>
+              <strong>Predictive Stockout Warning:</strong> {criticalItems.length} item{criticalItems.length === 1 ? '' : 's'} (
+              {criticalItems.map(i => i.name).join(', ')}) projected to stock out before supplier replenishment lead time.
+            </span>
+          </div>
+          <button
+            onClick={() => setActiveTab('PREDICTIVE')}
+            className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded text-[11px] font-mono transition-colors"
+          >
+            Review Forecasting & ROP
+          </button>
+        </div>
+      )}
+
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8">
+      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8 space-y-4">
         {/* VIEW 1: Stock Items & Levels */}
         {activeTab === 'ITEMS' && (
           <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">
             <div className="overflow-x-auto scrollbar-thin">
-              <table className="w-full text-left text-xs min-w-[750px]">
-              <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
-                <tr>
-                  <th className="p-3">Item Code & Name</th>
-                  <th className="p-3">Category</th>
-                  <th className="p-3">Base Unit</th>
-                  <th className="p-3">Unit Cost (KES)</th>
-                  <th className="p-3">Warehouse Depot</th>
-                  <th className="p-3">Main Bar Store</th>
-                  <th className="p-3">Kitchen / Minibar</th>
-                  <th className="p-3 text-right">Total Valuation (KES)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800 font-mono">
-                {stockItems.map(item => {
-                  const whStock = item.currentStock['loc-warehouse'] || 0;
-                  const barStock = item.currentStock['loc-bar-store'] || 0;
-                  const kitStock = (item.currentStock['loc-kitchen-store'] || 0) + (item.currentStock['loc-minibar-depot'] || 0);
-                  const totalQty = whStock + barStock + kitStock;
-                  const totalValuation = totalQty * item.averageUnitCost;
+              <table className="w-full text-left text-xs min-w-[850px]">
+                <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
+                  <tr>
+                    <th className="p-3">Item Code & Name</th>
+                    <th className="p-3">Category</th>
+                    <th className="p-3">Base Unit</th>
+                    <th className="p-3">Unit Cost (KES)</th>
+                    <th className="p-3">Warehouse Depot</th>
+                    <th className="p-3">Main Bar Store</th>
+                    <th className="p-3">Kitchen / Minibar</th>
+                    <th className="p-3">Predictive ROP Status</th>
+                    <th className="p-3 text-right">Total Valuation (KES)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800 font-mono">
+                  {stockItems.map(item => {
+                    const whStock = item.currentStock['loc-warehouse'] || 0;
+                    const barStock = item.currentStock['loc-bar-store'] || 0;
+                    const kitStock = (item.currentStock['loc-kitchen-store'] || 0) + (item.currentStock['loc-minibar-depot'] || 0);
+                    const totalQty = whStock + barStock + kitStock;
+                    const totalValuation = totalQty * item.averageUnitCost;
+                    const pred = predictiveList.find(p => p.stockItemId === item.id);
 
-                  return (
-                    <tr key={item.id} className="hover:bg-slate-850">
-                      <td className="p-3">
-                        <div className="font-bold text-slate-200">{item.name}</div>
-                        <div className="text-[10px] text-slate-400">{item.code}</div>
-                      </td>
-                      <td className="p-3 text-slate-300">
-                        {item.category}
-                      </td>
-                      <td className="p-3">
-                        <span className="bg-slate-800 px-2 py-0.5 rounded text-[11px] text-amber-300 font-bold">
-                          {item.baseUnit}
-                        </span>
-                      </td>
-                      <td className="p-3 tabular-nums text-slate-300">
-                        {item.averageUnitCost.toFixed(2)}
-                      </td>
-                      <td className="p-3 tabular-nums text-slate-200 font-bold">
-                        {whStock.toLocaleString()} {item.baseUnit}
-                      </td>
-                      <td className="p-3 tabular-nums text-amber-300 font-bold">
-                        {barStock.toLocaleString()} {item.baseUnit}
-                      </td>
-                      <td className="p-3 tabular-nums text-slate-300">
-                        {kitStock.toLocaleString()} {item.baseUnit}
-                      </td>
-                      <td className="p-3 text-right font-bold text-emerald-400 tabular-nums">
-                        {Math.round(totalValuation).toLocaleString()}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-850">
+                        <td className="p-3">
+                          <div className="font-bold text-slate-200">{item.name}</div>
+                          <div className="text-[10px] text-slate-400">{item.code}</div>
+                        </td>
+                        <td className="p-3 text-slate-300">
+                          {item.category}
+                        </td>
+                        <td className="p-3">
+                          <span className="bg-slate-800 px-2 py-0.5 rounded text-[11px] text-amber-300 font-bold">
+                            {item.baseUnit}
+                          </span>
+                        </td>
+                        <td className="p-3 tabular-nums text-slate-300">
+                          {item.averageUnitCost.toFixed(2)}
+                        </td>
+                        <td className="p-3 tabular-nums text-slate-200 font-bold">
+                          {whStock.toLocaleString()} {item.baseUnit}
+                        </td>
+                        <td className="p-3 tabular-nums text-amber-300 font-bold">
+                          {barStock.toLocaleString()} {item.baseUnit}
+                        </td>
+                        <td className="p-3 tabular-nums text-slate-300">
+                          {kitStock.toLocaleString()} {item.baseUnit}
+                        </td>
+                        <td className="p-3">
+                          {pred && (
+                            <div className="space-y-0.5">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                pred.urgencyLevel === 'CRITICAL' 
+                                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse' 
+                                  : pred.urgencyLevel === 'WARNING' 
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+                                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              }`}>
+                                {pred.urgencyLevel === 'CRITICAL' ? `CRITICAL (${pred.daysOfInventoryRemaining.toFixed(1)}d)` :
+                                 pred.urgencyLevel === 'WARNING' ? `REORDER (${pred.daysOfInventoryRemaining.toFixed(1)}d)` :
+                                 'HEALTHY'}
+                              </span>
+                              <div className="text-[9.5px] text-slate-400">
+                                Dynamic ROP: {pred.dynamicReorderPoint} {item.baseUnit}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 text-right font-bold text-emerald-400 tabular-nums">
+                          {Math.round(totalValuation).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {/* VIEW 2: Actual vs Theoretical (AvT) Yield Report (Section 13, 27) */}
+        {/* VIEW 2: Predictive Low-Stock Alert System & Dynamic ROP Forecasting */}
+        {activeTab === 'PREDICTIVE' && (
+          <div className="space-y-4">
+            {/* Predictive Header Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-slate-400">Critical Stockout Risk</span>
+                  <div className="p-1.5 bg-rose-500/10 text-rose-400 rounded-lg">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold font-mono text-rose-400 mt-2">
+                  {criticalItems.length} <span className="text-xs font-normal text-slate-400">Items</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  Run-rate exceeds supplier lead time
+                </div>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-slate-400">Reorders Triggered</span>
+                  <div className="p-1.5 bg-amber-500/10 text-amber-400 rounded-lg">
+                    <TrendingDown className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold font-mono text-amber-400 mt-2">
+                  {warningItems.length} <span className="text-xs font-normal text-slate-400">Items</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  Below dynamic safety reorder point
+                </div>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-slate-400">Est. Replenishment Capital</span>
+                  <div className="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg">
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold font-mono text-emerald-400 mt-2">
+                  KES {Math.round(totalReplenishmentCost).toLocaleString()}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  Total EOQ purchase requisition cost
+                </div>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-slate-400">ROP Algorithm Mode</span>
+                  <div className="p-1.5 bg-cyan-500/10 text-cyan-400 rounded-lg">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-sm font-bold font-mono text-cyan-300 mt-2">
+                  Dynamic Lead Time + 50% SS
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  $ROP = (ADC \times LeadTime) + SafetyStock$
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Bar */}
+            <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-mono text-slate-400 mr-1">Filter Urgency:</span>
+                {(['ALL', 'CRITICAL', 'WARNING', 'HEALTHY'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setPredictiveFilter(f)}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold font-mono transition-colors ${
+                      predictiveFilter === f
+                        ? 'bg-amber-500 text-slate-950 font-bold'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-750'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+
+              <div className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5 text-amber-400" />
+                <span>Historical consumption velocity computed across live sales & waste depletions.</span>
+              </div>
+            </div>
+
+            {/* Predictive Table */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-md">
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-left text-xs min-w-[950px]">
+                  <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">Stock Item & Code</th>
+                      <th className="p-3">Current Physical Stock</th>
+                      <th className="p-3">Daily Run Rate (ADC)</th>
+                      <th className="p-3">Supplier Lead Time</th>
+                      <th className="p-3">Dynamic ROP (SS Buffer)</th>
+                      <th className="p-3">Days Remaining & Projection</th>
+                      <th className="p-3">Suggested Order (EOQ)</th>
+                      <th className="p-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 font-mono">
+                    {filteredPredictive.map(item => {
+                      const isCritical = item.urgencyLevel === 'CRITICAL';
+                      const isWarning = item.urgencyLevel === 'WARNING';
+                      const isOverstocked = item.urgencyLevel === 'OVERSTOCKED';
+
+                      return (
+                        <tr key={item.stockItemId} className="hover:bg-slate-850">
+                          <td className="p-3">
+                            <div className="font-bold text-slate-100 flex items-center gap-1.5">
+                              <span>{item.name}</span>
+                              {isCritical && (
+                                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                              <span>{item.code}</span>
+                              <span>•</span>
+                              <span>{item.category}</span>
+                              <span>•</span>
+                              <span>{item.supplierName}</span>
+                            </div>
+                          </td>
+
+                          <td className="p-3">
+                            <div className="text-sm font-bold text-slate-200 tabular-nums">
+                              {item.currentStockTotal.toLocaleString()} <span className="text-xs font-normal text-amber-300">{item.baseUnit}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              Par: {item.parLevel} {item.baseUnit}
+                            </div>
+                          </td>
+
+                          <td className="p-3">
+                            <div className="font-bold text-slate-200 tabular-nums">
+                              {item.averageDailyConsumption} <span className="text-[10px] font-normal text-slate-400">{item.baseUnit}/day</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              Lead Demand: {item.leadTimeDemand} {item.baseUnit}
+                            </div>
+                          </td>
+
+                          <td className="p-3">
+                            <div className="font-bold text-slate-200 flex items-center gap-1.5">
+                              <Truck className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{item.leadTimeDays} Days</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              Supplier SLA
+                            </div>
+                          </td>
+
+                          <td className="p-3">
+                            <div className="font-bold text-amber-300 tabular-nums">
+                              {item.dynamicReorderPoint} {item.baseUnit}
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              Incl. {item.safetyStock} {item.baseUnit} Safety Stock
+                            </div>
+                          </td>
+
+                          <td className="p-3 min-w-[180px]">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`text-[11px] font-bold ${
+                                isCritical ? 'text-rose-400' : isWarning ? 'text-amber-400' : 'text-emerald-400'
+                              }`}>
+                                {item.daysOfInventoryRemaining.toFixed(1)} Days Left
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                {item.stockoutProjectedDate}
+                              </span>
+                            </div>
+
+                            {/* Risk Gauge Bar */}
+                            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full transition-all duration-300 ${
+                                  isCritical ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-emerald-500'
+                                }`}
+                                style={{ width: `${Math.min(100, (item.daysOfInventoryRemaining / 30) * 100)}%` }}
+                              />
+                            </div>
+                            <div className="text-[9.5px] text-slate-400 mt-1 truncate">
+                              {item.urgencyMessage}
+                            </div>
+                          </td>
+
+                          <td className="p-3">
+                            <div className="font-bold text-slate-100 tabular-nums">
+                              {item.suggestedReorderQuantity > 0 ? (
+                                <>
+                                  {item.suggestedReorderQuantity} {item.baseUnit}
+                                  <div className="text-[10px] text-emerald-400 font-semibold">
+                                    KES {item.estimatedReplenishmentCost.toLocaleString()}
+                                  </div>
+                                </>
+                              ) : (
+                                <span className="text-slate-500">None required</span>
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="p-3 text-right">
+                            {item.suggestedReorderQuantity > 0 ? (
+                              <button
+                                onClick={() => handleQuickReorder(item)}
+                                className={`px-2.5 py-1 rounded text-[11px] font-bold flex items-center gap-1 ml-auto transition-colors ${
+                                  isCritical 
+                                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-sm' 
+                                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-sm'
+                                }`}
+                              >
+                                <ShoppingCart className="w-3 h-3" />
+                                <span>Reorder Now</span>
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                In Stock
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 3: Actual vs Theoretical (AvT) Yield Report (Section 13, 27) */}
         {activeTab === 'AVT' && (
           <div className="space-y-4">
             <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -259,42 +612,20 @@ export const InventoryView: React.FC = () => {
                         </span>
                       </td>
                       <td className="p-3 text-right font-bold text-rose-400 tabular-nums">
-                        -KES 671.40
+                        -KES 816.00
                       </td>
                     </tr>
 
-                    {/* Tanqueray Gin AvT */}
-                    <tr className="hover:bg-slate-850">
-                      <td className="p-3 font-bold text-slate-200">
-                        Tanqueray London Dry Gin 1000ml
-                      </td>
-                      <td className="p-3 text-slate-400">Main Bar Beverage Station</td>
-                      <td className="p-3 tabular-nums">7,000 ml</td>
-                      <td className="p-3 tabular-nums text-amber-300">-200 ml</td>
-                      <td className="p-3 tabular-nums text-slate-400">0 ml</td>
-                      <td className="p-3 tabular-nums font-bold">6,800 ml</td>
-                      <td className="p-3 tabular-nums font-bold text-slate-100">6,800 ml</td>
-                      <td className="p-3">
-                        <span className="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
-                          0 ml (100% Yield)
-                        </span>
-                      </td>
-                      <td className="p-3 text-right font-bold text-emerald-400 tabular-nums">
-                        KES 0.00
-                      </td>
-                    </tr>
-
-                    {/* Tusker Lager AvT */}
                     <tr className="hover:bg-slate-850">
                       <td className="p-3 font-bold text-slate-200">
                         Tusker Lager 500ml
                       </td>
                       <td className="p-3 text-slate-400">Main Bar Beverage Station</td>
                       <td className="p-3 tabular-nums">120 units</td>
-                      <td className="p-3 tabular-nums text-amber-300">-24 units</td>
-                      <td className="p-3 tabular-nums text-slate-400">0 units</td>
-                      <td className="p-3 tabular-nums font-bold">96 units</td>
-                      <td className="p-3 tabular-nums font-bold text-slate-100">96 units</td>
+                      <td className="p-3 tabular-nums text-amber-300">-18 units (POS)</td>
+                      <td className="p-3 tabular-nums text-rose-350">-2 units (Broken)</td>
+                      <td className="p-3 tabular-nums font-bold">100 units</td>
+                      <td className="p-3 tabular-nums font-bold text-slate-100">100 units</td>
                       <td className="p-3">
                         <span className="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
                           0 units (Exact)
@@ -311,7 +642,7 @@ export const InventoryView: React.FC = () => {
           </div>
         )}
 
-        {/* VIEW 3: Immutable Stock Movement Ledger */}
+        {/* VIEW 4: Immutable Stock Movement Ledger */}
         {activeTab === 'MOVEMENTS' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between overflow-x-auto scrollbar-none pb-1">
@@ -450,15 +781,14 @@ export const InventoryView: React.FC = () => {
                 <label className="text-xs text-slate-300 block mb-1">Quantity (in Base Unit)</label>
                 <input
                   type="number"
-                  value={transferQty || ''}
+                  value={transferQty}
                   onChange={e => setTransferQty(parseFloat(e.target.value) || 0)}
-                  placeholder="e.g. 3750 for 5 bottles of 750ml"
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-amber-300 font-mono"
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-slate-300 block mb-1">Reason / Voucher Note</label>
+                <label className="text-xs text-slate-300 block mb-1">Reason / Shift Handover Note</label>
                 <input
                   type="text"
                   value={transferReason}
@@ -466,29 +796,28 @@ export const InventoryView: React.FC = () => {
                   className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
                 />
               </div>
+            </div>
 
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  onClick={() => setIsTransferOpen(false)}
-                  className="px-4 py-2 text-xs text-slate-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    if (transferQty > 0) {
-                      transferStock(transferItemId, transferFromLoc, transferToLoc, transferQty, transferReason);
-                      setIsTransferOpen(false);
-                      showToast('Stock transfer completed and perpetual inventory ledger updated!', 'success');
-                    } else {
-                      showToast('Please enter a valid transfer quantity greater than 0.', 'error');
-                    }
-                  }}
-                  className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded"
-                >
-                  Confirm Transfer
-                </button>
-              </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setIsTransferOpen(false)}
+                className="px-4 py-1.5 text-xs text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (transferQty <= 0) {
+                    showToast('Please enter a positive transfer quantity', 'error');
+                    return;
+                  }
+                  transferStock(transferItemId, transferFromLoc, transferToLoc, transferQty, transferReason);
+                  setIsTransferOpen(false);
+                }}
+                className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded"
+              >
+                Post Transfer
+              </button>
             </div>
           </div>
         </div>
@@ -498,10 +827,8 @@ export const InventoryView: React.FC = () => {
       {isWasteOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className="text-base font-bold text-white mb-1">Record Waste / Spillage</h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Write off lost stock and automatically post to General Ledger Waste Expense (5050).
-            </p>
+            <h3 className="text-base font-bold text-white mb-1">Record Wastage / Spillage</h3>
+            <p className="text-xs text-slate-400 mb-4">Wastage expenses directly to Cost of Goods Sold (COGS) Ledger.</p>
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-slate-300 block mb-1">Stock Item</label>
@@ -511,24 +838,36 @@ export const InventoryView: React.FC = () => {
                   className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
                 >
                   {stockItems.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.name} ({s.baseUnit})</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-xs text-slate-300 block mb-1">Waste Quantity (in Base Unit)</label>
+                <label className="text-xs text-slate-300 block mb-1">Location</label>
+                <select
+                  value={wasteLocationId}
+                  onChange={e => setWasteLocationId(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
+                >
+                  {stockLocations.map(l => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Wasted Quantity (Base Unit)</label>
                 <input
                   type="number"
-                  value={wasteQty || ''}
+                  value={wasteQty}
                   onChange={e => setWasteQty(parseFloat(e.target.value) || 0)}
-                  placeholder="e.g. 60 ml or 1 unit"
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-rose-300 font-mono"
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-slate-300 block mb-1">Reason Code</label>
+                <label className="text-xs text-slate-300 block mb-1">Reason / Cause</label>
                 <input
                   type="text"
                   value={wasteReason}
@@ -536,42 +875,39 @@ export const InventoryView: React.FC = () => {
                   className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
                 />
               </div>
+            </div>
 
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  onClick={() => setIsWasteOpen(false)}
-                  className="px-4 py-2 text-xs text-slate-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    if (wasteQty > 0) {
-                      declareWaste(wasteItemId, wasteLocationId, wasteQty, wasteReason);
-                      setIsWasteOpen(false);
-                      showToast('Waste declared and posted to General Ledger Expense!', 'success');
-                    } else {
-                      showToast('Please specify a waste quantity greater than 0.', 'error');
-                    }
-                  }}
-                  className="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white rounded"
-                >
-                  Post Waste
-                </button>
-              </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setIsWasteOpen(false)}
+                className="px-4 py-1.5 text-xs text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (wasteQty <= 0) {
+                    showToast('Please enter a positive wastage quantity', 'error');
+                    return;
+                  }
+                  declareWaste(wasteItemId, wasteLocationId, wasteQty, wasteReason);
+                  setIsWasteOpen(false);
+                }}
+                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded"
+              >
+                Record Waste
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL: Stock Count Adjustment */}
+      {/* MODAL: Stocktake Adjustment */}
       {isStocktakeOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className="text-base font-bold text-white mb-1">Physical Stocktake Count</h3>
-            <p className="text-xs text-slate-400 mb-4">
-              A count does not overwrite the ledger; it logs a count adjustment movement for the variance.
-            </p>
+            <h3 className="text-base font-bold text-white mb-1">Physical Stock Count Adjustment</h3>
+            <p className="text-xs text-slate-400 mb-4">Calculates exact delta variance and balances the inventory ledger.</p>
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-slate-300 block mb-1">Stock Item</label>
@@ -581,24 +917,36 @@ export const InventoryView: React.FC = () => {
                   className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
                 >
                   {stockItems.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.name} ({s.baseUnit})</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-xs text-slate-300 block mb-1">Counted Quantity in Base Unit</label>
+                <label className="text-xs text-slate-300 block mb-1">Count Location</label>
+                <select
+                  value={stocktakeLocId}
+                  onChange={e => setStocktakeLocId(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
+                >
+                  {stockLocations.map(l => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Actual Physical Counted Units</label>
                 <input
                   type="number"
-                  value={stocktakeCounted || ''}
+                  value={stocktakeCounted}
                   onChange={e => setStocktakeCounted(parseFloat(e.target.value) || 0)}
-                  placeholder="e.g. 4200 ml"
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-cyan-300 font-mono"
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-slate-300 block mb-1">Count Notes</label>
+                <label className="text-xs text-slate-300 block mb-1">Auditor / Count Notes</label>
                 <input
                   type="text"
                   value={stocktakeNotes}
@@ -606,25 +954,24 @@ export const InventoryView: React.FC = () => {
                   className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
                 />
               </div>
+            </div>
 
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  onClick={() => setIsStocktakeOpen(false)}
-                  className="px-4 py-2 text-xs text-slate-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    recordStockCountAdjustment(stocktakeItemId, stocktakeLocId, stocktakeCounted, stocktakeNotes);
-                    setIsStocktakeOpen(false);
-                    showToast('Physical count recorded and variance movement created in perpetual ledger!', 'success');
-                  }}
-                  className="px-5 py-2 text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded"
-                >
-                  Record Count
-                </button>
-              </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setIsStocktakeOpen(false)}
+                className="px-4 py-1.5 text-xs text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  recordStockCountAdjustment(stocktakeItemId, stocktakeLocId, stocktakeCounted, stocktakeNotes);
+                  setIsStocktakeOpen(false);
+                }}
+                className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded"
+              >
+                Commit Adjustment
+              </button>
             </div>
           </div>
         </div>

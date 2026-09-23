@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useServOS } from '../../context/ServOSContext';
 import { 
   Wifi, 
@@ -31,6 +31,7 @@ import {
 import { GlobalSearchModal } from './GlobalSearchModal';
 import { OfflineQueueModal } from './OfflineQueueModal';
 import { EdgeDevice, EdgeDeviceStatus } from '../../types/servos';
+import { calculatePredictiveInventory, PredictiveStockAnalysis } from '../../utils/predictiveStock';
 
 interface HeaderProps {
   activeTab: string;
@@ -61,13 +62,24 @@ export const Header: React.FC<HeaderProps> = ({
     syncOfflineQueue,
     anomalyAlerts,
     approvalRequests,
-    edgeDevices
+    edgeDevices,
+    stockItems,
+    stockMovements
   } = useServOS();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
   const [hardwareDropdownOpen, setHardwareDropdownOpen] = useState<boolean>(false);
   const [offlineQueueModalOpen, setOfflineQueueModalOpen] = useState<boolean>(false);
+
+  // Calculate Predictive Low-Stock Alerts for Global Search Bar Indicator
+  const predictiveAlerts = useMemo(() => {
+    return calculatePredictiveInventory(stockItems || [], stockMovements || []).filter(
+      (p: PredictiveStockAnalysis) => p.urgencyLevel === 'CRITICAL' || p.urgencyLevel === 'WARNING'
+    );
+  }, [stockItems, stockMovements]);
+
+  const criticalStockoutsCount = predictiveAlerts.filter((p: PredictiveStockAnalysis) => p.urgencyLevel === 'CRITICAL').length;
 
   const openAlertsCount = anomalyAlerts.filter(a => a.status === 'OPEN').length;
   const pendingApprovalsCount = approvalRequests.filter(a => a.status === 'PENDING').length;
@@ -214,9 +226,31 @@ export const Header: React.FC<HeaderProps> = ({
                   Quick search...
                 </span>
               </div>
-              <kbd className="hidden sm:flex items-center gap-0.5 font-mono text-[10px] bg-slate-800 border border-slate-700 text-slate-400 px-1.5 py-0.5 rounded shadow-xs shrink-0">
-                <span>⌘</span>K
-              </kbd>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Urgent Predictive Low-Stock Notification in Search Bar */}
+                {predictiveAlerts.length > 0 && (
+                  <span 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveTab('inventory');
+                    }}
+                    className={`hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border transition-colors ${
+                      criticalStockoutsCount > 0 
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse hover:bg-rose-500/30' 
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30 hover:bg-amber-500/30'
+                    }`}
+                    title="Predictive Low-Stock Alert: Click to view inventory forecasting"
+                  >
+                    <AlertTriangle className="w-3 h-3 text-rose-400" />
+                    <span>{criticalStockoutsCount > 0 ? `${criticalStockoutsCount} CRITICAL` : `${predictiveAlerts.length} LOW STOCK`}</span>
+                  </span>
+                )}
+
+                <kbd className="hidden sm:flex items-center gap-0.5 font-mono text-[10px] bg-slate-800 border border-slate-700 text-slate-400 px-1.5 py-0.5 rounded shadow-xs">
+                  <span>⌘</span>K
+                </kbd>
+              </div>
             </button>
           </div>
 
