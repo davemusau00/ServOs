@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useServOS } from '../../context/ServOSContext';
 import { 
   Wifi, 
@@ -19,8 +19,18 @@ import {
   Users,
   ChevronRight,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Search,
+  CreditCard,
+  Scale,
+  AlertTriangle,
+  CheckCircle2,
+  SlidersHorizontal,
+  Info
 } from 'lucide-react';
+import { GlobalSearchModal } from './GlobalSearchModal';
+import { OfflineQueueModal } from './OfflineQueueModal';
+import { EdgeDevice, EdgeDeviceStatus } from '../../types/servos';
 
 interface HeaderProps {
   activeTab: string;
@@ -50,14 +60,30 @@ export const Header: React.FC<HeaderProps> = ({
     offlineQueueCount,
     syncOfflineQueue,
     anomalyAlerts,
-    approvalRequests
+    approvalRequests,
+    edgeDevices
   } = useServOS();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
+  const [hardwareDropdownOpen, setHardwareDropdownOpen] = useState<boolean>(false);
+  const [offlineQueueModalOpen, setOfflineQueueModalOpen] = useState<boolean>(false);
 
   const openAlertsCount = anomalyAlerts.filter(a => a.status === 'OPEN').length;
   const pendingApprovalsCount = approvalRequests.filter(a => a.status === 'PENDING').length;
   const totalControlAlerts = openAlertsCount + pendingApprovalsCount;
+
+  // Global Hotkey for Search (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchModalOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const navLinks = [
     { id: 'pos', label: 'POS & Tables', icon: Utensils, desc: 'Floorplan, bills & settlement' },
@@ -75,10 +101,38 @@ export const Header: React.FC<HeaderProps> = ({
     setMobileMenuOpen(false);
   };
 
+  // Hardware Status Aggregations
+  const fiscalDevice = edgeDevices.find(d => d.type === 'FISCAL_PRINTER');
+  const cardReaderDevice = edgeDevices.find(d => d.type === 'CARD_READER');
+  const receiptPrinterDevice = edgeDevices.find(d => d.type === 'RECEIPT_PRINTER');
+  const kitchenPrinterDevice = edgeDevices.find(d => d.type === 'KITCHEN_PRINTER');
+  const drawerDevice = edgeDevices.find(d => d.type === 'CASH_DRAWER');
+  const scaleDevice = edgeDevices.find(d => d.type === 'WEIGHING_SCALE');
+
+  const onlineCount = edgeDevices.filter(d => d.status === 'ONLINE').length;
+  const errorDevices = edgeDevices.filter(d => d.status === 'ERROR');
+  const hasHardwareError = errorDevices.length > 0;
+  const hasHardwareOffline = edgeDevices.some(d => d.status === 'OFFLINE');
+
+  // Helper to get color for individual hardware icon
+  const getDeviceStatusColor = (device?: EdgeDevice) => {
+    if (!device) return 'text-slate-500';
+    if (device.status === 'ONLINE') return 'text-emerald-400';
+    if (device.status === 'ERROR') return 'text-rose-400 animate-pulse';
+    return 'text-slate-400';
+  };
+
+  const getDeviceStatusDot = (device?: EdgeDevice) => {
+    if (!device) return 'bg-slate-600';
+    if (device.status === 'ONLINE') return 'bg-emerald-400';
+    if (device.status === 'ERROR') return 'bg-rose-500 animate-ping';
+    return 'bg-slate-500';
+  };
+
   return (
     <>
       <header className="border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-40 select-none">
-        <div className="w-full max-w-full px-2.5 sm:px-4 h-14 sm:h-15 flex items-center justify-between gap-1.5 sm:gap-3 overflow-hidden">
+        <div className="w-full max-w-full px-2.5 sm:px-4 h-14 sm:h-15 flex items-center justify-between gap-1.5 sm:gap-3">
           {/* Zone 1: Mobile Hamburger & Desktop Sidebar Toggle + Active Outlet Selector */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1">
             {/* Mobile Hamburger Button (< md) */}
@@ -120,11 +174,11 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Property & Outlet selector */}
             <div className="flex items-center gap-1 sm:gap-1.5 text-xs min-w-0 shrink">
-              <span className="text-slate-400 font-medium truncate max-w-[100px] sm:max-w-[150px] hidden sm:inline">
+              <span className="text-slate-400 font-medium truncate max-w-[90px] sm:max-w-[130px] hidden sm:inline">
                 {currentProperty.name}
               </span>
               <span className="text-slate-600 hidden sm:inline">/</span>
-              <div className="relative group min-w-0 max-w-[115px] xs:max-w-[140px] sm:max-w-[180px] md:max-w-[210px]">
+              <div className="relative group min-w-0 max-w-[110px] xs:max-w-[130px] sm:max-w-[160px] md:max-w-[180px]">
                 <select
                   value={currentOutlet.id}
                   onChange={e => {
@@ -144,13 +198,126 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Zone 2: Right Status & Actions */}
+          {/* Zone 2: Central Global Search Bar */}
+          <div className="flex items-center justify-center flex-1 max-w-xs sm:max-w-sm md:max-w-md mx-1 sm:mx-2">
+            <button
+              onClick={() => setSearchModalOpen(true)}
+              className="w-full flex items-center justify-between gap-2 px-2.5 sm:px-3 py-1.5 bg-slate-950/60 hover:bg-slate-800/80 border border-slate-750 hover:border-amber-500/50 rounded-xl text-slate-400 hover:text-slate-200 transition-all shadow-inner group"
+              title="Global Search (Press Cmd+K / Ctrl+K)"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Search className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
+                <span className="text-xs font-medium truncate text-left hidden sm:inline text-slate-300">
+                  Search items, guests, folios, invoices...
+                </span>
+                <span className="text-xs font-medium truncate text-left sm:hidden text-slate-300">
+                  Quick search...
+                </span>
+              </div>
+              <kbd className="hidden sm:flex items-center gap-0.5 font-mono text-[10px] bg-slate-800 border border-slate-700 text-slate-400 px-1.5 py-0.5 rounded shadow-xs shrink-0">
+                <span>⌘</span>K
+              </kbd>
+            </button>
+          </div>
+
+          {/* Zone 3: Right Hardware Indicators, Offline Mode & User Switcher */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Visual Indicator: Connected Edge Hardware (Fiscal, Card Reader, Printers) */}
+            <div className="relative">
+              <button
+                onClick={onOpenHardwareModal}
+                onMouseEnter={() => setHardwareDropdownOpen(true)}
+                onMouseLeave={() => setHardwareDropdownOpen(false)}
+                title="Hardware status: Click to open Edge LAN Hardware Controller"
+                className={`flex items-center gap-1.5 px-2 py-1 text-xs font-mono rounded-lg border transition-all shrink-0 ${
+                  hasHardwareError
+                    ? 'bg-rose-950/50 border-rose-600/60 text-rose-200 shadow-sm shadow-rose-950/50 ring-1 ring-rose-500/40'
+                    : hasHardwareOffline
+                    ? 'bg-amber-950/30 border-amber-600/40 text-amber-300'
+                    : 'bg-slate-800/90 border-slate-700/80 text-slate-300 hover:bg-slate-750 hover:border-slate-600'
+                }`}
+              >
+                {/* 1. Fiscal Printer Icon Indicator */}
+                <span className="relative flex items-center" title={`Fiscal OSCU Box: ${fiscalDevice?.status || 'ONLINE'}`}>
+                  <Receipt className={`w-3.5 h-3.5 ${getDeviceStatusColor(fiscalDevice)}`} />
+                  <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${getDeviceStatusDot(fiscalDevice)}`} />
+                </span>
+
+                {/* 2. EMV Card Reader Icon Indicator */}
+                <span className="relative flex items-center" title={`EMV Card Terminal: ${cardReaderDevice?.status || 'ONLINE'}`}>
+                  <CreditCard className={`w-3.5 h-3.5 ${getDeviceStatusColor(cardReaderDevice)}`} />
+                  <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${getDeviceStatusDot(cardReaderDevice)}`} />
+                </span>
+
+                {/* 3. Thermal Receipt Printer Icon Indicator */}
+                <span className="relative flex items-center hidden xs:flex" title={`Receipt & Kitchen Printers: ${receiptPrinterDevice?.status || 'ONLINE'}`}>
+                  <Printer className={`w-3.5 h-3.5 ${getDeviceStatusColor(receiptPrinterDevice)}`} />
+                  <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${getDeviceStatusDot(receiptPrinterDevice)}`} />
+                </span>
+
+                {/* Label text */}
+                <span className="hidden xl:inline text-[11px] font-bold tracking-tight ml-0.5">
+                  {hasHardwareError ? `${errorDevices.length} HW FAULT` : `${onlineCount}/${edgeDevices.length} HW`}
+                </span>
+
+                {/* Overall status glowing dot */}
+                <span className={`w-2 h-2 rounded-full ${
+                  hasHardwareError 
+                    ? 'bg-rose-500 animate-ping' 
+                    : hasHardwareOffline 
+                    ? 'bg-amber-400' 
+                    : 'bg-emerald-400 animate-pulse'
+                }`} />
+              </button>
+
+              {/* Hardware Quick Dropdown Preview on hover / click */}
+              {hardwareDropdownOpen && (
+                <div 
+                  className="absolute right-0 top-full mt-1.5 w-64 bg-slate-900 border border-slate-750 rounded-xl p-3 shadow-2xl z-50 animate-in fade-in duration-100 hidden sm:block"
+                  onMouseEnter={() => setHardwareDropdownOpen(true)}
+                  onMouseLeave={() => setHardwareDropdownOpen(false)}
+                >
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-[11px] font-mono">
+                    <span className="font-bold text-slate-200 uppercase">Edge Peripherals</span>
+                    <span className={`px-1.5 py-0.5 rounded font-bold ${
+                      hasHardwareError ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'
+                    }`}>
+                      {onlineCount}/{edgeDevices.length} Online
+                    </span>
+                  </div>
+
+                  <div className="py-2 space-y-1.5 text-xs font-mono">
+                    {edgeDevices.slice(0, 4).map(dev => (
+                      <div key={dev.id} className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-300 truncate max-w-[140px]">
+                          {dev.name.split('(')[0]}
+                        </span>
+                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                          dev.status === 'ONLINE' ? 'text-emerald-400 bg-emerald-500/10' :
+                          dev.status === 'ERROR' ? 'text-rose-400 bg-rose-500/10 animate-pulse' :
+                          'text-slate-400 bg-slate-800'
+                        }`}>
+                          {dev.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={onOpenHardwareModal}
+                    className="w-full mt-1 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-bold text-center transition-colors block"
+                  >
+                    Open Hardware Diagnostics
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Offline Mode Toggle & Sync */}
             <div className="flex items-center gap-1">
               <button
                 onClick={toggleOfflineMode}
-                title={isOffline ? 'Offline Mode Active - Click to reconnect' : 'Simulate Network Outage'}
+                title={isOffline ? 'Offline Mode Active - Click to reconnect or right-click to inspect' : 'Click to simulate network outage'}
                 className={`flex items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1 text-xs font-medium rounded-lg border transition-colors shrink-0 ${
                   isOffline
                     ? 'bg-rose-950/70 border-rose-600/60 text-rose-300 animate-pulse'
@@ -163,28 +330,19 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </button>
 
-              {offlineQueueCount > 0 && (
-                <button
-                  onClick={syncOfflineQueue}
-                  title="Sync queued transactions"
-                  className="px-1.5 sm:px-2 py-1 text-xs font-mono font-bold bg-amber-500 text-slate-950 rounded-lg hover:bg-amber-400 flex items-center gap-1 shadow-sm shrink-0"
-                >
-                  <span className="hidden sm:inline">SYNC</span>
-                  <span>({offlineQueueCount})</span>
-                </button>
-              )}
+              <button
+                onClick={() => setOfflineQueueModalOpen(true)}
+                title="Open IndexedDB Offline Queue & Sync Engine"
+                className={`px-1.5 sm:px-2 py-1 text-xs font-mono font-bold rounded-lg flex items-center gap-1 shadow-sm shrink-0 transition-colors ${
+                  offlineQueueCount > 0 
+                    ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' 
+                    : 'bg-slate-800 text-slate-400 hover:bg-slate-750 hover:text-slate-200 border border-slate-700'
+                }`}
+              >
+                <span className="hidden sm:inline">{offlineQueueCount > 0 ? 'SYNC' : 'QUEUE'}</span>
+                <span>({offlineQueueCount})</span>
+              </button>
             </div>
-
-            {/* Edge Hardware Bridge status */}
-            <button
-              onClick={onOpenHardwareModal}
-              title="Inspect Edge Hardware Devices (Printers, Drawer, Scale)"
-              className="flex items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1 text-xs text-slate-300 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-750 transition-colors shrink-0"
-            >
-              <Printer className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline font-mono">Hardware</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            </button>
 
             {/* Active Employee Switcher */}
             <div className="relative group hidden md:block">
@@ -207,6 +365,19 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </header>
+
+      {/* GLOBAL SEARCH COMMAND MODAL */}
+      <GlobalSearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+        onNavigateTab={handleSelectTab}
+      />
+
+      {/* INDEXEDDB OFFLINE QUEUE & SYNC ENGINE MODAL */}
+      <OfflineQueueModal
+        isOpen={offlineQueueModalOpen}
+        onClose={() => setOfflineQueueModalOpen(false)}
+      />
 
       {/* MOBILE DRAWER OVERLAY (< md) */}
       {mobileMenuOpen && (
@@ -235,6 +406,21 @@ export const Header: React.FC<HeaderProps> = ({
                 className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
               >
                 <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick Search Button in Mobile Drawer */}
+            <div className="p-3 bg-slate-950/40 border-b border-slate-800">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setSearchModalOpen(true);
+                }}
+                className="w-full flex items-center gap-2.5 p-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 rounded-xl text-slate-300 text-xs font-semibold"
+              >
+                <Search className="w-4 h-4 text-amber-400" />
+                <span>Global Lookup & Search</span>
+                <span className="ml-auto text-[10px] font-mono text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded">⌘K</span>
               </button>
             </div>
 

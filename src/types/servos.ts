@@ -644,11 +644,56 @@ export interface ApprovalRequest {
 }
 
 // Hardware & Edge Agent
+export type EdgeDeviceType = 
+  | 'RECEIPT_PRINTER' 
+  | 'KITCHEN_PRINTER' 
+  | 'FISCAL_PRINTER' 
+  | 'CARD_READER' 
+  | 'CASH_DRAWER' 
+  | 'BARCODE_SCANNER' 
+  | 'WEIGHING_SCALE';
+
+export type EdgeDeviceStatus = 'ONLINE' | 'OFFLINE' | 'ERROR';
+
 export interface EdgeDevice {
   id: string;
   name: string;
-  type: 'RECEIPT_PRINTER' | 'KITCHEN_PRINTER' | 'CASH_DRAWER' | 'BARCODE_SCANNER' | 'WEIGHING_SCALE';
-  connection: 'LAN' | 'USB' | 'SERIAL';
-  status: 'ONLINE' | 'OFFLINE';
+  type: EdgeDeviceType;
+  connection: 'LAN' | 'USB' | 'SERIAL' | 'BLUETOOTH';
+  status: EdgeDeviceStatus;
   lastPing: string;
+  ipAddress?: string;
+  port?: string;
+  errorMessage?: string;
+  paperStatus?: 'OK' | 'LOW' | 'OUT';
+  batteryLevel?: number;
 }
+
+// Offline Queue & Synchronization
+export type OfflineOperationType =
+  | 'ORDER_CREATE'
+  | 'PAYMENT_PROCESS'
+  | 'KDS_BUMP'
+  | 'MINIBAR_POST'
+  | 'WASTE_DECLARE'
+  | 'STOCK_COUNT_ADJUST';
+
+export type OfflineOperationStatus = 'PENDING' | 'SYNCING' | 'SYNCED' | 'FAILED';
+
+export interface OfflineOperation {
+  id: string;
+  operationType: OfflineOperationType;
+  occurredAt: string;
+  terminalId: string;
+  terminalName: string;
+  employeeId: string;
+  employeeName: string;
+  status: OfflineOperationStatus;
+  retryCount: number;
+  payload: any;
+  summary: string;
+  amount?: number;
+  errorMessage?: string;
+  syncedAt?: string;
+}
+

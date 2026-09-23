@@ -38,8 +38,21 @@ import {
   SalaryAdvance,
   AnomalyAlert,
   ApprovalRequest,
-  EdgeDevice
+  EdgeDevice,
+  EdgeDeviceStatus,
+  EdgeDeviceType,
+  OfflineOperation,
+  OfflineOperationStatus,
+  OfflineOperationType
 } from '../types/servos';
+import {
+  initOfflineDb,
+  enqueueOfflineOperation,
+  getOfflineOperations,
+  updateOfflineOperationStatus,
+  cacheCatalogOffline,
+  logSyncEvent
+} from '../utils/offlineDb';
 
 interface ServOSContextType {
   // Tenancy
@@ -178,6 +191,8 @@ interface ServOSContextType {
   offlineQueueCount: number;
   syncOfflineQueue: () => void;
   edgeDevices: EdgeDevice[];
+  updateEdgeDeviceStatus: (deviceId: string, status: EdgeDeviceStatus, errorMessage?: string) => void;
+  reconnectAllEdgeDevices: () => void;
   triggerEdgePrint: (documentType: 'RECEIPT' | 'KITCHEN_TICKET', payload: any) => void;
   triggerCashDrawerKick: () => void;
   lastEdgeEvent: string | null;
@@ -1773,10 +1788,66 @@ const initialApprovals: ApprovalRequest[] = [
 ];
 
 const initialEdgeDevices: EdgeDevice[] = [
-  { id: 'edge-prn-01', name: 'Bar Receipt Printer (Epson TM-T88VI)', type: 'RECEIPT_PRINTER', connection: 'LAN', status: 'ONLINE', lastPing: '2026-09-23T04:00:00Z' },
-  { id: 'edge-prn-02', name: 'Kitchen Order Printer (Impact Star SP700)', type: 'KITCHEN_PRINTER', connection: 'LAN', status: 'ONLINE', lastPing: '2026-09-23T04:00:00Z' },
-  { id: 'edge-drw-01', name: 'Cash Drawer Port 1 (24V Solenoid)', type: 'CASH_DRAWER', connection: 'USB', status: 'ONLINE', lastPing: '2026-09-23T04:00:00Z' },
-  { id: 'edge-scl-01', name: 'Keg Digital Platform Scale (Mettler)', type: 'WEIGHING_SCALE', connection: 'SERIAL', status: 'ONLINE', lastPing: '2026-09-23T04:00:00Z' }
+  {
+    id: 'edge-fisc-01',
+    name: 'KRA Fiscal OSCU / VSCU Box (Datecs FP-700)',
+    type: 'FISCAL_PRINTER',
+    connection: 'LAN',
+    status: 'ONLINE',
+    ipAddress: '192.168.1.180',
+    port: '9100',
+    paperStatus: 'OK',
+    lastPing: '2026-09-23T06:00:00Z'
+  },
+  {
+    id: 'edge-card-01',
+    name: 'EMV Smart Card Terminal (Ingenico Desk 3500)',
+    type: 'CARD_READER',
+    connection: 'LAN',
+    status: 'ONLINE',
+    ipAddress: '192.168.1.185',
+    port: '8080',
+    batteryLevel: 98,
+    lastPing: '2026-09-23T06:00:00Z'
+  },
+  {
+    id: 'edge-prn-01',
+    name: 'Bar Receipt Printer (Epson TM-T88VI)',
+    type: 'RECEIPT_PRINTER',
+    connection: 'LAN',
+    status: 'ONLINE',
+    ipAddress: '192.168.1.190',
+    port: '9100',
+    paperStatus: 'OK',
+    lastPing: '2026-09-23T06:00:00Z'
+  },
+  {
+    id: 'edge-prn-02',
+    name: 'Kitchen Order Printer (Star Micronics SP700)',
+    type: 'KITCHEN_PRINTER',
+    connection: 'LAN',
+    status: 'ONLINE',
+    ipAddress: '192.168.1.192',
+    port: '9100',
+    paperStatus: 'OK',
+    lastPing: '2026-09-23T06:00:00Z'
+  },
+  {
+    id: 'edge-drw-01',
+    name: 'Cash Drawer Port 1 (RJ-12 24V Solenoid)',
+    type: 'CASH_DRAWER',
+    connection: 'USB',
+    status: 'ONLINE',
+    lastPing: '2026-09-23T06:00:00Z'
+  },
+  {
+    id: 'edge-scl-01',
+    name: 'Keg Digital Tare Scale (Mettler Toledo RS-232)',
+    type: 'WEIGHING_SCALE',
+    connection: 'SERIAL',
+    status: 'ONLINE',
+    lastPing: '2026-09-23T06:00:00Z'
+  }
 ];
 
 export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -1850,11 +1921,58 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [anomalyAlerts, setAnomalyAlerts] = useState<AnomalyAlert[]>(initialAlerts);
   const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>(initialApprovals);
 
-  // Offline & Edge
+  // Offline Mode & Edge State
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [offlineQueue, setOfflineQueue] = useState<Order[]>([]);
-  const [edgeDevices] = useState<EdgeDevice[]>(initialEdgeDevices);
+  const [edgeDevices, setEdgeDevices] = useState<EdgeDevice[]>(initialEdgeDevices);
   const [lastEdgeEvent, setLastEdgeEvent] = useState<string | null>(null);
+
+  // Initialize IndexedDB & Caching on App Mount
+  useEffect(() => {
+    const initOfflineStorage = async () => {
+      try {
+        await initOfflineDb();
+        await cacheCatalogOffline('catalog_products', products);
+        await cacheCatalogOffline('catalog_stock', stockItems);
+        await cacheCatalogOffline('catalog_tables', tables);
+
+        // Load any pending operations from previous session
+        const pendingOps = await getOfflineOperations('PENDING');
+        if (pendingOps.length > 0) {
+          const pendingOrders: Order[] = pendingOps
+            .filter(op => op.operationType === 'PAYMENT_PROCESS' || op.operationType === 'ORDER_CREATE')
+            .map(op => op.payload as Order);
+          setOfflineQueue(pendingOrders);
+        }
+      } catch (err) {
+        console.warn('IndexedDB offline storage initialization warning:', err);
+      }
+    };
+
+    initOfflineStorage();
+  }, []);
+
+  // Listen to browser online/offline events for automated background sync
+  useEffect(() => {
+    const handleBrowserOnline = async () => {
+      setIsOffline(false);
+      showToast('Network connection detected. Auto-syncing IndexedDB offline queue...', 'info');
+      await syncOfflineQueue();
+    };
+
+    const handleBrowserOffline = () => {
+      setIsOffline(true);
+      showToast('Network connection lost. Switched to IndexedDB offline queue mode.', 'info');
+    };
+
+    window.addEventListener('online', handleBrowserOnline);
+    window.addEventListener('offline', handleBrowserOffline);
+
+    return () => {
+      window.removeEventListener('online', handleBrowserOnline);
+      window.removeEventListener('offline', handleBrowserOffline);
+    };
+  }, [offlineQueue]);
 
   // In-app Toast Notifications
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error'; id: number } | null>(null);
@@ -2589,15 +2707,15 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const order = orders.find(o => o.id === orderId) || activeOrder;
     if (!order) return { success: false, message: 'Order not found' };
 
-    // Check if offline
+    // Check if offline (Cached locally into IndexedDB)
     if (isOffline) {
       if (tenderType === 'MPESA') {
         return {
           success: false,
-          message: 'Offline Mode: Electronic M-PESA Daraja push requires internet connectivity. Please use Cash or queue transaction.'
+          message: 'Offline Mode: Live Safaricom Daraja STK Push requires cloud connectivity. Please use Cash or Card Voucher.'
         };
       }
-      // If Cash or room charge offline queueing
+
       const offlineOrder: Order = {
         ...order,
         state: 'COMPLETED',
@@ -2605,11 +2723,74 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         paymentMethod: tenderType,
         isOfflineCreated: true
       };
+
+      // 1. Enqueue into IndexedDB
+      const offlineOp: OfflineOperation = {
+        id: `off-op-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        operationType: 'PAYMENT_PROCESS',
+        occurredAt: new Date().toISOString(),
+        terminalId: currentTerminal.id,
+        terminalName: currentTerminal.name,
+        employeeId: currentUser.id,
+        employeeName: currentUser.name,
+        status: 'PENDING',
+        retryCount: 0,
+        amount: amount,
+        summary: `Offline Sale: Order #${order.orderNumber} (${tenderType})`,
+        payload: offlineOrder
+      };
+
+      enqueueOfflineOperation(offlineOp).catch(err =>
+        console.error('Failed to persist to IndexedDB:', err)
+      );
+
+      // 2. Local stock depletion for accurate live bar counts
+      depleteInventoryForOrder(offlineOrder);
+
+      // 3. Local receipt print & cash drawer solenoid pulse
+      triggerEdgePrint('RECEIPT', {
+        orderNumber: order.orderNumber,
+        amount: amount,
+        tenderType,
+        offline: true,
+        persistedTo: 'IndexedDB (ServOS_Offline_Store)'
+      });
+
+      if (tenderType === 'CASH') {
+        triggerCashDrawerKick();
+        if (tillSession) {
+          setTillSession(prev =>
+            prev
+              ? {
+                  ...prev,
+                  cashSalesTotal: prev.cashSalesTotal + amount,
+                  expectedCashInDrawer: prev.expectedCashInDrawer + amount
+                }
+              : prev
+          );
+        }
+      }
+
+      // Free table if applicable
+      if (order.tableId) {
+        setTables(prev =>
+          prev.map(t =>
+            t.id === order.tableId ? { ...t, status: 'DIRTY', activeOrderId: undefined } : t
+          )
+        );
+      }
+
       setOfflineQueue(prev => [...prev, offlineOrder]);
       setActiveOrder(null);
+
+      showToast(
+        `Order #${order.orderNumber} settled offline & cached to IndexedDB (${tenderType} KES ${amount.toLocaleString()})`,
+        'success'
+      );
+
       return {
         success: true,
-        message: 'Order saved to local offline queue (will sync automatically upon network reconnection).'
+        message: 'Order cached in IndexedDB offline queue (will auto-sync upon reconnection).'
       };
     }
 
@@ -3723,21 +3904,70 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   };
 
-  // Offline Mode & Edge
-  const toggleOfflineMode = () => {
-    setIsOffline(prev => !prev);
+  // Offline Mode & IndexedDB Automated Synchronization
+  const toggleOfflineMode = async () => {
+    const nextState = !isOffline;
+    setIsOffline(nextState);
+    if (!nextState) {
+      showToast('Network restored. Synchronizing IndexedDB offline queue...', 'info');
+      await syncOfflineQueue();
+    } else {
+      showToast('Offline Mode Active: POS transactions will cache in IndexedDB.', 'info');
+    }
   };
 
-  const syncOfflineQueue = () => {
-    if (offlineQueue.length === 0) return;
-    // Process each queued offline sale
-    offlineQueue.forEach(order => {
-      depleteInventoryForOrder(order);
-      postOrderToGeneralLedger(order, 'CASH', []);
-      generateEtimsFiscalInvoice(order);
-    });
-    setOrders(prev => [...offlineQueue, ...prev]);
-    setOfflineQueue([]);
+  const syncOfflineQueue = async () => {
+    try {
+      const pendingOps = await getOfflineOperations('PENDING');
+      if (pendingOps.length === 0 && offlineQueue.length === 0) return;
+
+      let syncedCount = 0;
+
+      // 1. Process and replay each pending operation from IndexedDB
+      for (const op of pendingOps) {
+        await updateOfflineOperationStatus(op.id, 'SYNCING');
+
+        if (op.operationType === 'PAYMENT_PROCESS' || op.operationType === 'ORDER_CREATE') {
+          const ord = op.payload as Order;
+          postOrderToGeneralLedger(ord, (ord.paymentMethod as any) || 'CASH', []);
+          generateEtimsFiscalInvoice(ord);
+          setOrders(prev => {
+            if (prev.some(o => o.id === ord.id || o.orderNumber === ord.orderNumber)) {
+              return prev;
+            }
+            return [ord, ...prev];
+          });
+        }
+
+        await updateOfflineOperationStatus(op.id, 'SYNCED');
+        syncedCount++;
+      }
+
+      // 2. Process memory queue if any items remained unpersisted
+      offlineQueue.forEach(order => {
+        if (!orders.some(o => o.id === order.id)) {
+          postOrderToGeneralLedger(order, (order.paymentMethod as any) || 'CASH', []);
+          generateEtimsFiscalInvoice(order);
+          setOrders(prev => [order, ...prev]);
+        }
+      });
+
+      const totalSynced = syncedCount || offlineQueue.length;
+      setOfflineQueue([]);
+      await logSyncEvent(
+        `Synchronized ${totalSynced} offline transactions with Central General Ledger & eTIMS`,
+        'success',
+        totalSynced
+      );
+
+      showToast(
+        `Successfully synced ${totalSynced} offline transaction(s) with Central Ledger and eTIMS fiscalizer!`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Error synchronizing offline queue:', err);
+      showToast('Error syncing offline queue. Will auto-retry upon reconnection.', 'error');
+    }
   };
 
   const triggerEdgePrint = (documentType: 'RECEIPT' | 'KITCHEN_TICKET', payload: any) => {
@@ -3748,6 +3978,37 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const triggerCashDrawerKick = () => {
     const timestamp = new Date().toLocaleTimeString();
     setLastEdgeEvent(`[Edge LAN Agent] 24V Solenoid Cash Drawer pulse emitted at ${timestamp}`);
+  };
+
+  const updateEdgeDeviceStatus = (deviceId: string, status: EdgeDeviceStatus, errorMessage?: string) => {
+    setEdgeDevices(prev =>
+      prev.map(d =>
+        d.id === deviceId
+          ? {
+              ...d,
+              status,
+              errorMessage: status === 'ERROR' ? (errorMessage || 'Hardware fault or interface timeout') : undefined,
+              lastPing: new Date().toISOString()
+            }
+          : d
+      )
+    );
+    showToast(
+      `Device ${deviceId} is now ${status}${errorMessage ? `: ${errorMessage}` : ''}`,
+      status === 'ONLINE' ? 'success' : status === 'ERROR' ? 'error' : 'info'
+    );
+  };
+
+  const reconnectAllEdgeDevices = () => {
+    setEdgeDevices(prev =>
+      prev.map(d => ({
+        ...d,
+        status: 'ONLINE',
+        errorMessage: undefined,
+        lastPing: new Date().toISOString()
+      }))
+    );
+    showToast('All connected edge peripherals re-scanned and marked ONLINE', 'success');
   };
 
   // North Star Traceability Evidence Search ("Where did this shilling, bottle, or variance come from?")
@@ -3901,6 +4162,8 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         offlineQueueCount: offlineQueue.length,
         syncOfflineQueue,
         edgeDevices,
+        updateEdgeDeviceStatus,
+        reconnectAllEdgeDevices,
         triggerEdgePrint,
         triggerCashDrawerKick,
         lastEdgeEvent,
