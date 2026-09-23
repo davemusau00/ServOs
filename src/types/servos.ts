@@ -20,15 +20,17 @@ export interface Property {
   timezone: string;
   kraPin: string;
   etimsCuNumber: string;
+  etimsCuSerialNumber?: string;
 }
 
 export interface Outlet {
   id: string;
   propertyId: string;
   name: string;
-  type: 'BAR' | 'RESTAURANT' | 'HOTEL_FRONT' | 'POOL_LOUNGE' | 'EVENT_HALL';
-  defaultStockLocationId: string;
-  active: boolean;
+  code?: string;
+  type: string;
+  defaultStockLocationId?: string;
+  active?: boolean;
 }
 
 export interface Terminal {
@@ -96,18 +98,23 @@ export interface ProductSellable {
   code: string;
   name: string;
   category: 'SPIRITS' | 'BEER' | 'WINE' | 'COCKTAIL' | 'FOOD' | 'PACKAGE' | 'ROOM' | 'EXPERIENCE';
-  productType: ProductType;
-  consumptionMethod: ConsumptionMethod;
+  productType?: ProductType;
+  consumptionMethod?: ConsumptionMethod;
   price: number; // In base currency KES
-  taxClassId: 'A_16' | 'B_0' | 'C_EXEMPT';
+  basePrice?: number;
+  costPrice?: number;
+  etimsTaxCode?: string;
+  description?: string;
+  taxClassId?: 'A_16' | 'B_0' | 'C_EXEMPT';
   outletIds: string[];
   stockItemId?: string;
   portionVolume?: number; // e.g. 30 for shot, 60 for double, 750 for bottle
   portionUnitSymbol?: string;
+  portionUnit?: string;
   recipeIngredients?: RecipeIngredient[];
   modifiers?: RecipeModifier[];
   packageMixersCount?: number;
-  available: boolean;
+  available?: boolean;
   routeTo: 'BAR' | 'KITCHEN' | 'SERVICE';
 }
 
@@ -139,6 +146,8 @@ export interface StockItem {
   baseUnit: string; // 'ml', 'g', 'unit'
   parLevel: number;
   reorderPoint: number;
+  minimumStockLevel?: number;
+  lastStocktakeDate?: string;
   currentStock: Record<string, number>; // locationId -> current quantity in base unit
   averageUnitCost: number; // KES per base unit
   category: string;

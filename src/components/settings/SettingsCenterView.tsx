@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useServOS } from '../../context/ServOSContext';
+import { Outlet } from '../../types/servos';
 import { 
   Settings, 
   Building, 
@@ -22,8 +23,20 @@ import {
 } from 'lucide-react';
 
 export const SettingsCenterView: React.FC = () => {
-  const { currentProperty, currentOutlet, edgeDevices, showToast } = useServOS();
+  const { currentProperty, updateProperty, outlets, addOutlet, updateOutlet, currentOutlet, edgeDevices, showToast } = useServOS();
   const [activeTab, setActiveTab] = useState<'PROPERTIES' | 'ROLES_PERMISSIONS' | 'FISCAL_ETIMS' | 'PAYMENT_GATEWAYS' | 'PRINTERS_KDS'>('PROPERTIES');
+
+  // Property Details Edit Form state
+  const [propertyNameInput, setPropertyNameInput] = useState<string>(currentProperty.name);
+  const [kraPinInput, setKraPinInput] = useState<string>(currentProperty.kraPin || 'P051239841A');
+  const [etimsSerialInput, setEtimsSerialInput] = useState<string>(currentProperty.etimsCuSerialNumber || 'KRA-CU-98214301');
+  const [currencyInput, setCurrencyInput] = useState<string>(currentProperty.currency || 'KES');
+
+  // New Outlet Form State
+  const [isAddOutletOpen, setIsAddOutletOpen] = useState<boolean>(false);
+  const [newOutletName, setNewOutletName] = useState<string>('');
+  const [newOutletType, setNewOutletType] = useState<Outlet['type']>('BAR');
+  const [newOutletCode, setNewOutletCode] = useState<string>('');
 
   // Role permissions matrix state
   const [permissionsMatrix, setPermissionsMatrix] = useState({
@@ -139,68 +152,222 @@ export const SettingsCenterView: React.FC = () => {
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Building className="w-5 h-5 text-amber-400" />
-                <span>Multi-Property Organization Hierarchy</span>
+                <span>Primary Property & Branch Settings</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">Grand Hospitality Holdings Ltd • Code: GHH-KE</p>
+              <p className="text-xs text-slate-400 mt-0.5">Grand Hospitality Holdings Ltd • Active Property ID: {currentProperty.id}</p>
             </div>
 
             <button
-              onClick={handleSaveSettings}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5"
+              onClick={() => {
+                updateProperty({
+                  name: propertyNameInput,
+                  kraPin: kraPinInput,
+                  etimsCuSerialNumber: etimsSerialInput,
+                  currency: currencyInput
+                });
+              }}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors"
             >
               <Save className="w-4 h-4" />
-              <span>Save Changes</span>
+              <span>Update Property Details</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              {
-                name: 'Grand Nairobi Hotel & Resort',
-                code: 'PROP-01',
-                city: 'Nairobi CBD',
-                outlets: ['Main Cocktail Bar', 'Terrace Grill', 'Hotel Front Desk', 'Executive VIP Lounge'],
-                status: 'PRIMARY ACTIVE'
-              },
-              {
-                name: 'Westlands Sky Lounge',
-                code: 'PROP-02',
-                city: 'Westlands, Nairobi',
-                outlets: ['Rooftop Cocktail Bar', 'Tapas Kitchen', 'VIP Arena'],
-                status: 'ACTIVE'
-              },
-              {
-                name: 'Mombasa Beachfront Resort',
-                code: 'PROP-03',
-                city: 'Nyali, Mombasa',
-                outlets: ['Poolside Tiki Bar', 'Seafood Grill', 'Ocean Suites'],
-                status: 'ACTIVE'
-              }
-            ].map((prop, idx) => (
-              <div key={idx} className="p-5 bg-slate-900 border border-slate-800 rounded-2xl space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
-                    {prop.code}
-                  </span>
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold">{prop.status}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Property Form */}
+            <div className="p-5 bg-slate-900 border border-slate-800 rounded-2xl space-y-4">
+              <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider text-amber-400">
+                Property Master Identity & Tax Config
+              </h3>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Property / Branch Display Name</label>
+                  <input
+                    type="text"
+                    value={propertyNameInput}
+                    onChange={e => setPropertyNameInput(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">KRA PIN Number</label>
+                    <input
+                      type="text"
+                      value={kraPinInput}
+                      onChange={e => setKraPinInput(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono uppercase text-amber-300"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">eTIMS CU Serial Number</label>
+                    <input
+                      type="text"
+                      value={etimsSerialInput}
+                      onChange={e => setEtimsSerialInput(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-emerald-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Functional Currency</label>
+                    <select
+                      value={currencyInput}
+                      onChange={e => setCurrencyInput(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white"
+                    >
+                      <option value="KES">KES (Kenyan Shilling)</option>
+                      <option value="USD">USD (US Dollar)</option>
+                      <option value="EUR">EUR (Euro)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Timezone</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={currentProperty.timezone || 'Africa/Nairobi'}
+                      className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3 py-2 text-xs font-mono text-slate-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Outlets List & Management */}
+            <div className="p-5 bg-slate-900 border border-slate-800 rounded-2xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider text-amber-400">
+                  Configured Outlets ({outlets.length})
+                </h3>
+                <button
+                  onClick={() => setIsAddOutletOpen(true)}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition-colors"
+                >
+                  + Add Outlet
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {outlets.map(out => (
+                  <div
+                    key={out.id}
+                    className="p-3 bg-slate-850 border border-slate-750 rounded-xl flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white">{out.name}</span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-800 text-amber-300 rounded font-bold">
+                          {out.type}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-400">Code: {out.code}</span>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const newName = prompt(`Rename outlet "${out.name}":`, out.name);
+                        if (newName && newName.trim()) {
+                          updateOutlet(out.id, { name: newName.trim() });
+                        }
+                      }}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs rounded font-bold transition-colors"
+                    >
+                      Rename
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD OUTLET MODAL */}
+      {isAddOutletOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-white">Create New Outlet / Station</h3>
+              <button onClick={() => setIsAddOutletOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Outlet Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Poolside Cabana Bar"
+                  value={newOutletName}
+                  onChange={e => setNewOutletName(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Outlet Type</label>
+                  <select
+                    value={newOutletType}
+                    onChange={e => setNewOutletType(e.target.value as any)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white"
+                  >
+                    <option value="BAR">Bar / Lounge</option>
+                    <option value="RESTAURANT">Dining Restaurant</option>
+                    <option value="KITCHEN">Kitchen / Food Prep</option>
+                    <option value="STORE">Depot Store</option>
+                    <option value="ROOM_SERVICE">In-Room Dining</option>
+                  </select>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-bold text-white">{prop.name}</h3>
-                  <p className="text-xs text-slate-400">{prop.city}</p>
-                </div>
-
-                <div className="space-y-1 text-xs font-mono text-slate-300 pt-2 border-t border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase block">Configured Outlets:</span>
-                  {prop.outlets.map((o, oIdx) => (
-                    <div key={oIdx} className="flex items-center gap-1.5 text-[11px]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                      <span>{o}</span>
-                    </div>
-                  ))}
+                  <label className="text-xs text-slate-300 block mb-1">Outlet Code</label>
+                  <input
+                    type="text"
+                    placeholder="OUT-POOL"
+                    value={newOutletCode}
+                    onChange={e => setNewOutletCode(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono uppercase text-amber-300"
+                  />
                 </div>
               </div>
-            ))}
+            </div>
+
+            <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsAddOutletOpen(false)}
+                className="px-4 py-2 text-xs text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newOutletName.trim()) return;
+                  addOutlet({
+                    propertyId: currentProperty.id,
+                    name: newOutletName.trim(),
+                    type: newOutletType,
+                    code: newOutletCode || `OUT-${Math.floor(100 + Math.random() * 900)}`
+                  });
+                  setNewOutletName('');
+                  setNewOutletCode('');
+                  setIsAddOutletOpen(false);
+                }}
+                className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl transition-colors"
+              >
+                Create Outlet
+              </button>
+            </div>
           </div>
         </div>
       )}

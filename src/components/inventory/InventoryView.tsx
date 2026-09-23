@@ -7,6 +7,9 @@ import {
   Package, 
   ArrowRightLeft, 
   Trash2, 
+  Edit3,
+  Plus,
+  Boxes,
   Scale, 
   ClipboardCheck, 
   AlertTriangle,
@@ -33,6 +36,9 @@ import {
 export const InventoryView: React.FC = () => {
   const {
     stockItems,
+    addStockItem,
+    updateStockItem,
+    deleteStockItem,
     stockLocations,
     stockMovements,
     transferStock,
@@ -42,6 +48,17 @@ export const InventoryView: React.FC = () => {
   } = useServOS();
 
   const [activeTab, setActiveTab] = useState<'ITEMS' | 'PREDICTIVE' | 'AVT' | 'MOVEMENTS'>('ITEMS');
+
+  // Stock Item Modal State
+  const [isStockModalOpen, setIsStockModalOpen] = useState<boolean>(false);
+  const [editingStockId, setEditingStockId] = useState<string | null>(null);
+  const [stockFormName, setStockFormName] = useState<string>('');
+  const [stockFormCode, setStockFormCode] = useState<string>('');
+  const [stockFormCategory, setStockFormCategory] = useState<StockItem['category']>('BEVERAGE_SPIRITS');
+  const [stockFormBaseUnit, setStockFormBaseUnit] = useState<string>('ml');
+  const [stockFormCost, setStockFormCost] = useState<number>(100);
+  const [stockFormRop, setStockFormRop] = useState<number>(1000);
+  const [stockFormMin, setStockFormMin] = useState<number>(500);
 
   // Modals
   const [isRequisitionOpen, setIsRequisitionOpen] = useState<boolean>(false);
@@ -98,6 +115,66 @@ export const InventoryView: React.FC = () => {
       .filter(p => p.urgencyLevel === 'CRITICAL' || p.urgencyLevel === 'WARNING')
       .reduce((acc, p) => acc + p.estimatedReplenishmentCost, 0);
   }, [predictiveList]);
+
+  const openAddStockModal = () => {
+    setEditingStockId(null);
+    setStockFormName('');
+    setStockFormCode(`STK-${Math.floor(1000 + Math.random() * 9000)}`);
+    setStockFormCategory('BEVERAGE_SPIRITS');
+    setStockFormBaseUnit('ml');
+    setStockFormCost(250);
+    setStockFormRop(1500);
+    setStockFormMin(500);
+    setIsStockModalOpen(true);
+  };
+
+  const openEditStockModal = (item: StockItem) => {
+    setEditingStockId(item.id);
+    setStockFormName(item.name);
+    setStockFormCode(item.code);
+    setStockFormCategory(item.category);
+    setStockFormBaseUnit(item.baseUnit);
+    setStockFormCost(item.averageUnitCost);
+    setStockFormRop(item.reorderPoint);
+    setStockFormMin(item.minimumStockLevel || 0);
+    setIsStockModalOpen(true);
+  };
+
+  const handleSaveStockItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stockFormName.trim()) return;
+
+    if (editingStockId) {
+      updateStockItem(editingStockId, {
+        name: stockFormName,
+        code: stockFormCode,
+        category: stockFormCategory,
+        baseUnit: stockFormBaseUnit,
+        averageUnitCost: stockFormCost,
+        reorderPoint: stockFormRop,
+        minimumStockLevel: stockFormMin
+      });
+    } else {
+      const created: Omit<StockItem, 'id'> = {
+        name: stockFormName,
+        code: stockFormCode,
+        category: stockFormCategory,
+        dimension: 'VOLUME',
+        parLevel: stockFormRop * 2,
+        baseUnit: stockFormBaseUnit,
+        currentStock: {
+          'loc-warehouse': 1000,
+          'loc-bar-store': 500
+        },
+        reorderPoint: stockFormRop,
+        minimumStockLevel: stockFormMin,
+        averageUnitCost: stockFormCost,
+        lastStocktakeDate: new Date().toISOString().split('T')[0]
+      };
+      addStockItem(created);
+    }
+    setIsStockModalOpen(false);
+  };
 
   const handleQuickReorder = (item: PredictiveStockAnalysis) => {
     showToast(
@@ -177,10 +254,18 @@ export const InventoryView: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-1.5">
             <button
-              onClick={() => setIsRequisitionOpen(true)}
+              onClick={openAddStockModal}
               className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
             >
-              <Boxes className="w-3.5 h-3.5" />
+              <Plus className="w-3.5 h-3.5" />
+              <span>New Stock Item</span>
+            </button>
+
+            <button
+              onClick={() => setIsRequisitionOpen(true)}
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
+            >
+              <Boxes className="w-3.5 h-3.5 text-amber-400" />
               <span>Store Requisition</span>
             </button>
 
@@ -263,6 +348,7 @@ export const InventoryView: React.FC = () => {
                     <th className="p-3">Kitchen / Minibar</th>
                     <th className="p-3">Predictive ROP Status</th>
                     <th className="p-3 text-right">Total Valuation (KES)</th>
+                    <th className="p-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800 font-mono">
@@ -322,6 +408,28 @@ export const InventoryView: React.FC = () => {
                         </td>
                         <td className="p-3 text-right font-bold text-emerald-400 tabular-nums">
                           {Math.round(totalValuation).toLocaleString()}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => openEditStockModal(item)}
+                              title="Edit Item Details"
+                              className="p-1 hover:bg-slate-800 text-amber-400 rounded transition-colors"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete stock item ${item.name}?`)) {
+                                  deleteStockItem(item.id);
+                                }
+                              }}
+                              title="Delete Item"
+                              className="p-1 hover:bg-slate-800 text-rose-400 rounded transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -992,6 +1100,136 @@ export const InventoryView: React.FC = () => {
         isOpen={isRequisitionOpen}
         onClose={() => setIsRequisitionOpen(false)}
       />
+
+      {/* STOCK ITEM CREATION / EDITING MODAL */}
+      {isStockModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  {editingStockId ? 'Edit Stock Item Master' : 'Add New Inventory Stock Item'}
+                </h3>
+                <p className="text-xs text-slate-400 font-mono">Define unit costs, reorder thresholds & category</p>
+              </div>
+              <button onClick={() => setIsStockModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStockItem} className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Item Name</label>
+                <input
+                  type="text"
+                  required
+                  value={stockFormName}
+                  onChange={e => setStockFormName(e.target.value)}
+                  placeholder="e.g. Jameson Irish Whiskey 750ml"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Item Code / SKU</label>
+                  <input
+                    type="text"
+                    required
+                    value={stockFormCode}
+                    onChange={e => setStockFormCode(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-amber-300"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Category</label>
+                  <select
+                    value={stockFormCategory}
+                    onChange={e => setStockFormCategory(e.target.value as any)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white"
+                  >
+                    <option value="BEVERAGE_SPIRITS">Spirits & Cognac</option>
+                    <option value="BEVERAGE_WINE">Wine & Champagne</option>
+                    <option value="BEVERAGE_BEER">Beer & Cider</option>
+                    <option value="BEVERAGE_MIXER">Softs & Mixers</option>
+                    <option value="FOOD_PROTEIN">Meat & Seafood</option>
+                    <option value="FOOD_DRY_GOODS">Dry Goods & Pantry</option>
+                    <option value="CONSUMABLES">Guest Amenities & Packaging</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Base Inventory Unit</label>
+                  <input
+                    type="text"
+                    required
+                    value={stockFormBaseUnit}
+                    onChange={e => setStockFormBaseUnit(e.target.value)}
+                    placeholder="ml, kg, pcs, cans"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-amber-300"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Average Unit Cost (KES)</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={stockFormCost}
+                    onChange={e => setStockFormCost(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Dynamic ROP (Reorder Point)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={stockFormRop}
+                    onChange={e => setStockFormRop(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Minimum Safety Stock Level</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={stockFormMin}
+                    onChange={e => setStockFormMin(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-slate-200"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsStockModalOpen(false)}
+                  className="px-4 py-2 text-xs text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl transition-colors shadow-xs"
+                >
+                  {editingStockId ? 'Save Changes' : 'Create Item'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

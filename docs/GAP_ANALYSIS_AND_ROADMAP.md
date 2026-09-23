@@ -48,6 +48,31 @@ Based on operational feedback, the following core management modules and transac
 - **Property & Outlet Configuration**: Multi-property setup and terminal assignment.
 - **Role Permission Matrix**: Fine-grained RBAC matrix (Manager, Bartender, Cashier, Front Desk, Housekeeper) controlling access to sensitive operations.
 
+### 9. Interactive Floor Plan Designer Studio (`FloorPlanDesignerView.tsx`)
+- **Visual Section Grid Editor**: Drag-and-grid floorplan designer supporting Main Dining, VIP Cabanas, Outdoor Terrace, and Grill Room.
+- **Table Customization & Geometry**: Shapes (Square, Round, Rectangle, Bar Top), capacity, server zone assignment, joinable party flags, and minimum spend requirements (e.g. KES 15,000 for VIP cabanas).
+- **POS Live State Sync**: Immediate publishing of custom layouts directly to live POS floor views.
+
+### 10. Tender Reconciliation & Shift Settlement Center (`TenderReconciliationView.tsx`)
+- **Multi-Channel Settlement Audit**: Side-by-side reconciliation between expected POS revenue and counted drops across Cash, M-Pesa Express, Card PDQ Batches, Hotel Guest Postings, and Delivery Payouts.
+- **Automated Variance & Supervisor Notes**: Discrepancy flagging (`Actual - Expected`) with required supervisor notes for variances exceeding tolerance thresholds.
+- **Service Charge & Tip Pool Distribution**: Tip calculation split between Waitstaff, Kitchen, Bar, and Support runners with automated M-Pesa B2C payout triggers.
+
+### 11. Sub-Recipe & Production Batch Studio (`BatchProductionView.tsx`)
+- **Prep Run Manufacturing**: Central kitchen and bar prep management for house sauces, cocktail premixes, marinades, and dough bases.
+- **Batch Scaling & Stock Depletion**: Multiplier scaling (0.5x to 5.0x) with raw ingredient inventory depletion and yield efficiency variance tracking.
+
+### 12. Analytics & Reports Centre (`ReportsCenterView.tsx`)
+- **Comprehensive Operational Reporting**: Sales & Covers per head (RevPASH), hourly peak revenue curves, Kitchen Speed SLA & ticket turn times, and Boston Matrix Menu Engineering (Stars, Plowhorses, Puzzles, Dogs).
+- **Financial & Audit Exports**: CSV and PDF reporting exports.
+
+### 13. Digital QR Table Self-Ordering Experience (`QROrderingGuestView.tsx`)
+- **Mobile Guest Ordering Interface**: Web app simulation for table QR code scanning.
+- **Instant KDS Routing**: Guest cart builder with dietary notes, routing orders directly to Kitchen/Bar KDS passes, and choice of "Add to Table Bill" or instant M-Pesa STK Push checkout.
+
+### 14. Multi-Location Stock Transfer & Store Requisition (`StockRequisitionModal.tsx`)
+- **Internal Store Requisitioning**: Inter-outlet transfer requests from Central Cellar / Bulk Store to sub-outlets (Rooftop Bar, Poolside Bar, Grill Pass) with multi-item line creation and transfer logs.
+
 ---
 
 ## 🎯 Target Functional Gaps & Future Roadmap Items

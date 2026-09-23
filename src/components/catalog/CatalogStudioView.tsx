@@ -74,7 +74,7 @@ const INITIAL_PRICE_BOOKS: PriceBookRule[] = [
 ];
 
 export const CatalogStudioView: React.FC = () => {
-  const { products, outlets, stockItems, showToast } = useServOS();
+  const { products, addProduct, updateProduct, deleteProduct, outlets, stockItems, showToast } = useServOS();
   const [activeTab, setActiveTab] = useState<'PRODUCTS' | 'RECIPES' | 'PORTIONS' | 'PRICING_ENGINE'>('PRODUCTS');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -82,6 +82,18 @@ export const CatalogStudioView: React.FC = () => {
 
   // Selected product for detailed inspector
   const [selectedProduct, setSelectedProduct] = useState<ProductSellable>(products[0] || null);
+
+  // Product Editing / Creation Modal State
+  const [isProductModalOpen, setIsProductModalOpen] = useState<boolean>(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null); // null = New Product
+  const [productFormName, setProductFormName] = useState<string>('');
+  const [productFormCode, setProductFormCode] = useState<string>('');
+  const [productFormCategory, setProductFormCategory] = useState<ProductSellable['category']>('SPIRITS');
+  const [productFormPrice, setProductFormPrice] = useState<number>(500);
+  const [productFormCostPrice, setProductFormCostPrice] = useState<number>(150);
+  const [productFormRouteTo, setProductFormRouteTo] = useState<ProductSellable['routeTo']>('BAR');
+  const [productFormEtimsCode, setProductFormEtimsCode] = useState<ProductSellable['etimsTaxCode']>('A');
+  const [productFormDescription, setProductFormDescription] = useState<string>('');
 
   // New Price Book modal state
   const [newRuleModalOpen, setNewRuleModalOpen] = useState<boolean>(false);
@@ -101,6 +113,83 @@ export const CatalogStudioView: React.FC = () => {
   const handleToggleRule = (id: string) => {
     setPriceBooks(prev => prev.map(r => r.id === id ? { ...r, active: !r.active } : r));
     showToast('Price Book Rule status toggled successfully!', 'info');
+  };
+
+  const openAddProductModal = () => {
+    setEditingProductId(null);
+    setProductFormName('');
+    setProductFormCode(`SKU-${Math.floor(100 + Math.random() * 900)}`);
+    setProductFormCategory('SPIRITS');
+    setProductFormPrice(650);
+    setProductFormCostPrice(200);
+    setProductFormRouteTo('BAR');
+    setProductFormEtimsCode('A');
+    setProductFormDescription('');
+    setIsProductModalOpen(true);
+  };
+
+  const openEditProductModal = (prod: ProductSellable) => {
+    setEditingProductId(prod.id);
+    setProductFormName(prod.name);
+    setProductFormCode(prod.code);
+    setProductFormCategory(prod.category);
+    setProductFormPrice(prod.price);
+    setProductFormCostPrice(prod.costPrice || Math.round(prod.price * 0.3));
+    setProductFormRouteTo(prod.routeTo);
+    setProductFormEtimsCode(prod.etimsTaxCode || 'A');
+    setProductFormDescription(prod.description || '');
+    setIsProductModalOpen(true);
+  };
+
+  const handleSaveProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productFormName.trim()) return;
+
+    if (editingProductId) {
+      updateProduct(editingProductId, {
+        name: productFormName,
+        code: productFormCode,
+        category: productFormCategory,
+        basePrice: productFormPrice,
+        price: productFormPrice,
+        costPrice: productFormCostPrice,
+        routeTo: productFormRouteTo,
+        etimsTaxCode: productFormEtimsCode,
+        description: productFormDescription
+      });
+      // update selected product
+      if (selectedProduct && selectedProduct.id === editingProductId) {
+        setSelectedProduct(prev => prev ? {
+          ...prev,
+          name: productFormName,
+          code: productFormCode,
+          category: productFormCategory,
+          basePrice: productFormPrice,
+          price: productFormPrice,
+          costPrice: productFormCostPrice,
+          routeTo: productFormRouteTo,
+          etimsTaxCode: productFormEtimsCode,
+          description: productFormDescription
+        } : prev);
+      }
+    } else {
+      const created: Omit<ProductSellable, 'id'> = {
+        name: productFormName,
+        code: productFormCode,
+        category: productFormCategory,
+        basePrice: productFormPrice,
+        price: productFormPrice,
+        costPrice: productFormCostPrice,
+        portionVolume: 750,
+        portionUnit: 'ml',
+        routeTo: productFormRouteTo,
+        outletIds: outlets.map(o => o.id),
+        etimsTaxCode: productFormEtimsCode,
+        description: productFormDescription
+      };
+      addProduct(created);
+    }
+    setIsProductModalOpen(false);
   };
 
   const handleCreatePriceBook = () => {
@@ -177,6 +266,17 @@ export const CatalogStudioView: React.FC = () => {
           {/* Left List of Products */}
           <div className="w-full md:w-80 lg:w-96 border-r border-slate-800 bg-slate-900/60 flex flex-col h-full overflow-hidden">
             <div className="p-3 border-b border-slate-800 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-mono font-bold text-slate-400 uppercase">Product Catalog</span>
+                <button
+                  onClick={openAddProductModal}
+                  className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg flex items-center gap-1 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Product</span>
+                </button>
+              </div>
+
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
@@ -242,9 +342,33 @@ export const CatalogStudioView: React.FC = () => {
                   <p className="text-xs text-slate-400 mt-0.5">Route To: {selectedProduct.routeTo} Station</p>
                 </div>
 
-                <div className="text-right">
-                  <span className="text-xs font-mono text-slate-400 block">Base Selling Price</span>
-                  <span className="text-2xl font-black text-amber-400 font-mono">KES {selectedProduct.price.toLocaleString()}</span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="text-left sm:text-right">
+                    <span className="text-xs font-mono text-slate-400 block">Base Selling Price</span>
+                    <span className="text-2xl font-black text-amber-400 font-mono">KES {selectedProduct.price.toLocaleString()}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openEditProductModal(selectedProduct)}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-amber-400 text-xs font-bold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to delete ${selectedProduct.name}?`)) {
+                          deleteProduct(selectedProduct.id);
+                          const remaining = products.filter(p => p.id !== selectedProduct.id);
+                          setSelectedProduct(remaining[0] || null);
+                        }
+                      }}
+                      className="px-2.5 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-bold rounded-lg border border-rose-800/50 flex items-center gap-1 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -616,6 +740,148 @@ export const CatalogStudioView: React.FC = () => {
                 Deploy Rule
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PRODUCT CREATION / EDITING MODAL */}
+      {isProductModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  {editingProductId ? 'Edit Product Details' : 'Add New Product to Catalog'}
+                </h3>
+                <p className="text-xs text-slate-400 font-mono">Configure selling price, routing & eTIMS classification</p>
+              </div>
+              <button onClick={() => setIsProductModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProduct} className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Product Name</label>
+                <input
+                  type="text"
+                  required
+                  value={productFormName}
+                  onChange={e => setProductFormName(e.target.value)}
+                  placeholder="e.g. Hennessy VSOP 750ml"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">SKU / Code</label>
+                  <input
+                    type="text"
+                    required
+                    value={productFormCode}
+                    onChange={e => setProductFormCode(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-amber-300"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Category</label>
+                  <select
+                    value={productFormCategory}
+                    onChange={e => setProductFormCategory(e.target.value as any)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white"
+                  >
+                    <option value="SPIRITS">Spirits</option>
+                    <option value="COCKTAIL">Cocktail</option>
+                    <option value="BEER">Beer & Cider</option>
+                    <option value="FOOD">Food & Kitchen</option>
+                    <option value="PACKAGE">Package & Softs</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Selling Price (KES)</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    value={productFormPrice}
+                    onChange={e => setProductFormPrice(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Cost Price (KES)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={productFormCostPrice}
+                    onChange={e => setProductFormCostPrice(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono text-slate-200"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Station Route</label>
+                  <select
+                    value={productFormRouteTo}
+                    onChange={e => setProductFormRouteTo(e.target.value as any)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white"
+                  >
+                    <option value="BAR">Bar Pass</option>
+                    <option value="KITCHEN">Kitchen Pass</option>
+                    <option value="GRILL">Grill Station</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">eTIMS KRA Tax Code</label>
+                  <select
+                    value={productFormEtimsCode}
+                    onChange={e => setProductFormEtimsCode(e.target.value as any)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-emerald-400 font-mono"
+                  >
+                    <option value="A">Code A (16% Standard VAT)</option>
+                    <option value="B">Code B (0% Zero Rated)</option>
+                    <option value="C">Code C (Exempt Tax)</option>
+                    <option value="EX">Code EX (Excise Duty 20%)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Product Description / Notes</label>
+                <textarea
+                  rows={2}
+                  value={productFormDescription}
+                  onChange={e => setProductFormDescription(e.target.value)}
+                  placeholder="e.g. Premium VSOP cognac served with optional ginger ale mixer"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 outline-none resize-none"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsProductModalOpen(false)}
+                  className="px-4 py-2 text-xs text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl transition-colors shadow-xs"
+                >
+                  {editingProductId ? 'Save Changes' : 'Create Product'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

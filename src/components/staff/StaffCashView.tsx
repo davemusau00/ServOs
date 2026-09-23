@@ -32,6 +32,7 @@ export const StaffCashView: React.FC = () => {
     employees,
     addEmployee,
     updateEmployee,
+    deleteEmployee,
     currentUser,
     tillSession,
     openTillSession,
@@ -63,6 +64,20 @@ export const StaffCashView: React.FC = () => {
   const [staffDeptFilter, setStaffDeptFilter] = useState<string>('ALL');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState<boolean>(false);
+
+  // Edit Staff Modal State
+  const [isEditStaffModalOpen, setIsEditStaffModalOpen] = useState<boolean>(false);
+  const [editEmpId, setEditEmpId] = useState<string>('');
+  const [editEmpName, setEditEmpName] = useState<string>('');
+  const [editEmpRole, setEditEmpRole] = useState<Employee['role']>('WAITER');
+  const [editEmpDept, setEditEmpDept] = useState<Employee['department']>('Food & Beverage');
+  const [editEmpEmail, setEditEmpEmail] = useState<string>('');
+  const [editEmpPhone, setEditEmpPhone] = useState<string>('');
+  const [editEmpBaseSalary, setEditEmpBaseSalary] = useState<number>(0);
+  const [editEmpHourlyRate, setEditEmpHourlyRate] = useState<number>(0);
+  const [editEmpKraPin, setEditEmpKraPin] = useState<string>('');
+  const [editEmpContractType, setEditEmpContractType] = useState<Employee['contractType']>('PERMANENT');
+  const [editEmpAttendanceStatus, setEditEmpAttendanceStatus] = useState<Employee['attendanceStatus']>('OFF_DUTY');
 
   // Leave Management State
   const [leaveFilter, setLeaveFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
@@ -123,6 +138,41 @@ export const StaffCashView: React.FC = () => {
   const pendingLeavesCount = leaveRequests.filter(l => l.status === 'PENDING').length;
   const pendingAdvancesCount = salaryAdvances.filter(a => a.status === 'PENDING').length;
   const currentMonthRun = payrollRuns.find(r => r.period === 'September 2026') || payrollRuns[0];
+
+  const openEditStaffModal = (emp: Employee) => {
+    setEditEmpId(emp.id);
+    setEditEmpName(emp.name);
+    setEditEmpRole(emp.role);
+    setEditEmpDept(emp.department);
+    setEditEmpEmail(emp.email);
+    setEditEmpPhone(emp.phone);
+    setEditEmpBaseSalary(emp.baseSalary);
+    setEditEmpHourlyRate(emp.hourlyRate);
+    setEditEmpKraPin(emp.kraPin || '');
+    setEditEmpContractType(emp.contractType);
+    setEditEmpAttendanceStatus(emp.attendanceStatus);
+    setIsEditStaffModalOpen(true);
+  };
+
+  const handleSaveEditStaff = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editEmpName.trim()) return;
+
+    updateEmployee(editEmpId, {
+      name: editEmpName,
+      role: editEmpRole,
+      department: editEmpDept,
+      email: editEmpEmail,
+      phone: editEmpPhone,
+      baseSalary: editEmpBaseSalary,
+      hourlyRate: editEmpHourlyRate,
+      kraPin: editEmpKraPin,
+      contractType: editEmpContractType,
+      attendanceStatus: editEmpAttendanceStatus
+    });
+
+    setIsEditStaffModalOpen(false);
+  };
 
   const handleAddEmployeeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -438,10 +488,25 @@ export const StaffCashView: React.FC = () => {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-850 flex items-center justify-between text-xs">
-                    <span className="text-slate-400 font-mono truncate max-w-[180px]">{emp.phone}</span>
-                    <span className="text-amber-400 font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                      View Profile <ChevronRight className="w-3.5 h-3.5" />
-                    </span>
+                    <span className="text-slate-400 font-mono truncate max-w-[140px]">{emp.phone}</span>
+                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => openEditStaffModal(emp)}
+                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-[11px] rounded flex items-center gap-1 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Remove staff member ${emp.name}?`)) {
+                            deleteEmployee(emp.id);
+                          }
+                        }}
+                        className="px-2 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 font-bold text-[11px] rounded transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1493,6 +1558,170 @@ export const StaffCashView: React.FC = () => {
                   className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg min-h-[38px]"
                 >
                   Save & Onboard
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: EDIT STAFF PROFILE ================= */}
+      {isEditStaffModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white">Edit Staff Details & Contract</h3>
+                <p className="text-xs text-slate-400 font-mono">Update role, compensation rates, department & status</p>
+              </div>
+              <button onClick={() => setIsEditStaffModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditStaff} className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-300 block mb-1">Full Legal Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editEmpName}
+                  onChange={e => setEditEmpName(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Role Title</label>
+                  <select
+                    value={editEmpRole}
+                    onChange={e => setEditEmpRole(e.target.value as Employee['role'])}
+                    className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs font-bold text-white"
+                  >
+                    <option value="ADMIN">System Administrator</option>
+                    <option value="MANAGER">General Manager</option>
+                    <option value="WAITER">Senior Waiter / Waitress</option>
+                    <option value="BARTENDER">Head Mixologist / Bartender</option>
+                    <option value="CHEF">Head Chef / Kitchen Lead</option>
+                    <option value="CASHIER">Till Cashier</option>
+                    <option value="HOUSEKEEPING">Housekeeping Lead</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Department</label>
+                  <select
+                    value={editEmpDept}
+                    onChange={e => setEditEmpDept(e.target.value as Employee['department'])}
+                    className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs font-bold text-white"
+                  >
+                    <option value="Management">Management</option>
+                    <option value="Food & Beverage">Food & Beverage</option>
+                    <option value="Kitchen Operations">Kitchen Operations</option>
+                    <option value="Front Office & Rooms">Front Office & Rooms</option>
+                    <option value="Finance & Accounts">Finance & Accounts</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={editEmpEmail}
+                    onChange={e => setEditEmpEmail(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editEmpPhone}
+                    onChange={e => setEditEmpPhone(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs font-mono text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Base Monthly Salary (KES)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editEmpBaseSalary}
+                    onChange={e => setEditEmpBaseSalary(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm font-mono font-bold text-amber-300"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Hourly Rate (KES)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editEmpHourlyRate}
+                    onChange={e => setEditEmpHourlyRate(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm font-mono text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">KRA PIN</label>
+                  <input
+                    type="text"
+                    value={editEmpKraPin}
+                    onChange={e => setEditEmpKraPin(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs font-mono uppercase text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Contract Type</label>
+                  <select
+                    value={editEmpContractType}
+                    onChange={e => setEditEmpContractType(e.target.value as any)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs text-white"
+                  >
+                    <option value="PERMANENT">Permanent</option>
+                    <option value="CASUAL">Casual / Daily</option>
+                    <option value="CONTRACT">Contract</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Duty Status</label>
+                  <select
+                    value={editEmpAttendanceStatus}
+                    onChange={e => setEditEmpAttendanceStatus(e.target.value as any)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-xs font-bold text-amber-400"
+                  >
+                    <option value="ON_DUTY">ON DUTY</option>
+                    <option value="OFF_DUTY">OFF DUTY</option>
+                    <option value="ON_LEAVE">ON LEAVE</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsEditStaffModalOpen(false)}
+                  className="px-4 py-2 text-xs text-slate-400"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg min-h-[38px]"
+                >
+                  Save Employee Details
                 </button>
               </div>
             </form>

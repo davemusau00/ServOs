@@ -65,13 +65,13 @@ export const QROrderingGuestView: React.FC<{ onClose: () => void; tableLabel?: s
     });
   };
 
-  const cartTotal = cart.reduce((acc, i) => acc + i.product.basePrice * i.quantity, 0);
+  const cartTotal = cart.reduce((acc, i) => acc + (i.product.basePrice || i.product.price) * i.quantity, 0);
 
   const handleSubmitGuestOrder = () => {
     if (cart.length === 0) return;
 
     // Create or select table order and route items
-    const created = createOrderForTable('t-04', guestName || 'Guest QR Self-Order');
+    const created = createOrderForTable('t-04');
     cart.forEach(item => {
       addItemToOrder(item.product.id, item.product.portionVolume, [], [], 'Seat 1', 'Starters');
     });
@@ -154,9 +154,9 @@ export const QROrderingGuestView: React.FC<{ onClose: () => void; tableLabel?: s
                       <div className="flex items-center gap-1.5">
                         <span className="font-bold text-xs text-slate-100">{prod.name}</span>
                       </div>
-                      <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{prod.description}</p>
+                      <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{prod.description || ''}</p>
                       <span className="text-xs font-bold text-amber-400 font-mono mt-1 block">
-                        KES {prod.basePrice.toLocaleString()}
+                        KES {(prod.basePrice || prod.price).toLocaleString()}
                       </span>
                     </div>
 

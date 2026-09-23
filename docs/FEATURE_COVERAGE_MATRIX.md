@@ -23,6 +23,12 @@ This matrix provides a detailed module-by-module evaluation of current capabilit
 | **13. Universal Action Inbox** | 🟢 Strong | Centralized operational task queue for approvals, low stock alerts, cash variances, housekeeping exceptions, and maintenance tickets. |
 | **14. Control, Audit & Approvals** | 🟢 Strong | Anomaly detection alerts, manager PIN authorization gates, immutable system audit log. |
 | **15. Settings & Admin Center** | 🟢 Strong | Multi-property & outlet configuration, role permission matrix, fiscal eTIMS setup, gateway settings, printer routing. |
+| **16. Floor Plan Studio** | 🟢 Strong | Interactive drag-and-grid floorplan designer, geometry/shapes, server zone mapping, minimum spend rules, live POS state sync. |
+| **17. Tender Reconciliation** | 🟢 Strong | Multi-channel payment drop audit (Cash, M-Pesa, PDQ, Room Charge), variance tracking, tip pool & M-Pesa B2C payouts. |
+| **18. Batch Prep Studio** | 🟢 Strong | Sub-recipe manufacturing runs (sauces, premixes, dough), scaling multipliers, raw ingredient depletion, yield efficiency tracking. |
+| **19. Analytics & Reports Centre** | 🟢 Strong | RevPASH metrics, hourly peak curves, Kitchen Speed SLA turn times, Boston Matrix Menu Engineering, CSV/PDF exports. |
+| **20. QR Table Self-Ordering** | 🟢 Strong | Digital mobile guest web app, table parameter lookup, instant KDS routing, M-Pesa STK push or add to bill checkout. |
+| **21. Store Requisitions** | 🟢 Strong | Multi-location internal stock transfer requests, sub-outlet replenishment, line item quantities, and movement tracking. |
 
 ---
 
@@ -39,6 +45,8 @@ This matrix provides a detailed module-by-module evaluation of current capabilit
 | Itemized Refunds | 🟢 Strong | Refund modal generating KRA eTIMS credit notes with reason code logging. |
 | Check Merging | 🟢 Strong | Merge active table bills into a single check with item consolidation. |
 | Customer Assignment | 🟢 Strong | Link CRM guest profile directly to POS ticket to accumulate points and enforce preferences. |
+| Floor Plan Studio | 🟢 Strong | Interactive drag-and-grid floorplan designer, table shapes, capacity, server zones, minimum spend, and joinable party flags. |
+| QR Table Self-Ordering | 🟢 Strong | Mobile guest web app interface with category filter, item notes, instant KDS routing, and M-Pesa STK push or add to bill checkout. |
 | Thermal Receipt Printing | 🟢 Strong | ESC/POS formatted receipt modal complete with eTIMS QR code and tax breakdown. |
 
 ---

@@ -69,7 +69,10 @@ interface ServOSContextType {
   // Tenancy
   organization: Organization;
   currentProperty: Property;
+  updateProperty: (updates: Partial<Property>) => void;
   outlets: Outlet[];
+  addOutlet: (outlet: Omit<Outlet, 'id'>) => void;
+  updateOutlet: (id: string, updates: Partial<Outlet>) => void;
   currentOutlet: Outlet;
   setCurrentOutlet: (outlet: Outlet) => void;
   terminals: Terminal[];
@@ -79,6 +82,7 @@ interface ServOSContextType {
   employees: Employee[];
   addEmployee: (emp: Omit<Employee, 'id'>) => void;
   updateEmployee: (id: string, updates: Partial<Employee>) => void;
+  deleteEmployee: (id: string) => void;
   leaveRequests: StaffLeaveRequest[];
   submitLeaveRequest: (req: Omit<StaffLeaveRequest, 'id' | 'requestedAt' | 'status'>) => void;
   approveLeaveRequest: (requestId: string, reviewNotes?: string) => void;
@@ -97,9 +101,15 @@ interface ServOSContextType {
 
   // Catalog & Inventory
   stockItems: StockItem[];
+  addStockItem: (item: Omit<StockItem, 'id'>) => void;
+  updateStockItem: (id: string, updates: Partial<StockItem>) => void;
+  deleteStockItem: (id: string) => void;
   stockLocations: StockLocation[];
   stockMovements: StockMovement[];
   products: ProductSellable[];
+  addProduct: (product: Omit<ProductSellable, 'id'>) => void;
+  updateProduct: (id: string, updates: Partial<ProductSellable>) => void;
+  deleteProduct: (id: string) => void;
   transferStock: (
     stockItemId: string,
     fromLocId: string,
@@ -122,6 +132,9 @@ interface ServOSContextType {
 
   // Tables & POS
   tables: RestaurantTable[];
+  addTable: (table: Omit<RestaurantTable, 'id'>) => void;
+  updateTable: (id: string, updates: Partial<RestaurantTable>) => void;
+  deleteTable: (id: string) => void;
   activeOrder: Order | null;
   orders: Order[];
   createOrderForTable: (tableId: string) => Order;
@@ -1913,10 +1926,48 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Tenancy & Session
   const [organization] = useState<Organization>(initialOrg);
-  const [currentProperty] = useState<Property>(initialProperty);
-  const [outlets] = useState<Outlet[]>(initialOutlets);
+  const [currentProperty, setCurrentProperty] = useState<Property>(initialProperty);
+  const [outlets, setOutlets] = useState<Outlet[]>(initialOutlets);
   const [currentOutlet, setCurrentOutlet] = useState<Outlet>(initialOutlets[0]);
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+
+  const updateProperty = (updates: Partial<Property>) => {
+    setCurrentProperty(prev => ({ ...prev, ...updates }));
+    showToast('Property configuration updated successfully', 'success');
+  };
+
+  const addOutlet = (newOutlet: Omit<Outlet, 'id'>) => {
+    const created: Outlet = {
+      ...newOutlet,
+      id: `out-${Date.now()}`
+    };
+    setOutlets(prev => [...prev, created]);
+    showToast(`Outlet "${created.name}" created`, 'success');
+  };
+
+  const updateOutlet = (id: string, updates: Partial<Outlet>) => {
+    setOutlets(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o));
+    showToast('Outlet details updated successfully', 'success');
+  };
+
+  const addEmployee = (emp: Omit<Employee, 'id'>) => {
+    const newEmp: Employee = {
+      ...emp,
+      id: `emp-${Date.now()}`
+    };
+    setEmployees(prev => [...prev, newEmp]);
+    showToast(`Employee "${newEmp.name}" added`, 'success');
+  };
+
+  const updateEmployee = (id: string, updates: Partial<Employee>) => {
+    setEmployees(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+    showToast('Employee details updated', 'success');
+  };
+
+  const deleteEmployee = (id: string) => {
+    setEmployees(prev => prev.filter(e => e.id !== id));
+    showToast('Employee removed', 'info');
+  };
   const [currentUser, setCurrentUser] = useState<Employee>(() => {
     const adminEmp = initialEmployees.find(e => e.role === 'ADMIN') || initialEmployees[0];
     return adminEmp;
@@ -1967,10 +2018,67 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [stockItems, setStockItems] = useState<StockItem[]>(initialStockItems);
   const [stockLocations] = useState<StockLocation[]>(initialStockLocations);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>(initialStockMovements);
-  const [products] = useState<ProductSellable[]>(initialProducts);
+  const [products, setProducts] = useState<ProductSellable[]>(initialProducts);
+
+  const addProduct = (prod: Omit<ProductSellable, 'id'>) => {
+    const newProd: ProductSellable = {
+      ...prod,
+      id: `prod-${Date.now()}`
+    };
+    setProducts(prev => [newProd, ...prev]);
+    showToast(`Product "${newProd.name}" added to catalog`, 'success');
+  };
+
+  const updateProduct = (id: string, updates: Partial<ProductSellable>) => {
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    showToast('Product details updated successfully', 'success');
+  };
+
+  const deleteProduct = (id: string) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+    showToast('Product deleted from catalog', 'info');
+  };
+
+  const addStockItem = (item: Omit<StockItem, 'id'>) => {
+    const newItem: StockItem = {
+      ...item,
+      id: `stk-${Date.now()}`
+    };
+    setStockItems(prev => [newItem, ...prev]);
+    showToast(`Stock item "${newItem.name}" added`, 'success');
+  };
+
+  const updateStockItem = (id: string, updates: Partial<StockItem>) => {
+    setStockItems(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    showToast('Stock item details updated', 'success');
+  };
+
+  const deleteStockItem = (id: string) => {
+    setStockItems(prev => prev.filter(s => s.id !== id));
+    showToast('Stock item deleted', 'info');
+  };
 
   // Orders, Tables & Tabs
   const [tables, setTables] = useState<RestaurantTable[]>(initialTables);
+
+  const addTable = (tbl: Omit<RestaurantTable, 'id'>) => {
+    const newTbl: RestaurantTable = {
+      ...tbl,
+      id: `tbl-${Date.now()}`
+    };
+    setTables(prev => [...prev, newTbl]);
+    showToast(`Table "${newTbl.label}" created`, 'success');
+  };
+
+  const updateTable = (id: string, updates: Partial<RestaurantTable>) => {
+    setTables(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    showToast('Table configuration updated', 'success');
+  };
+
+  const deleteTable = (id: string) => {
+    setTables(prev => prev.filter(t => t.id !== id));
+    showToast('Table deleted', 'info');
+  };
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
 
@@ -2528,7 +2636,7 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Helper: execute stock depletion for an order
   const depleteInventoryForOrder = (order: Order) => {
     const newMovements: StockMovement[] = [];
-    const locationId = currentOutlet.defaultStockLocationId;
+    const locationId = currentOutlet.defaultStockLocationId || 'loc-bar-store';
     const location = stockLocations.find(l => l.id === locationId);
     const now = new Date().toISOString();
 
@@ -3164,20 +3272,6 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Staff & HR Management
-  const addEmployee = (empData: Omit<Employee, 'id'>) => {
-    const newEmp: Employee = {
-      ...empData,
-      id: `emp-${Date.now()}`
-    };
-    setEmployees(prev => [...prev, newEmp]);
-    showToast(`Staff profile created for ${newEmp.name} (${newEmp.role})`, 'success');
-  };
-
-  const updateEmployee = (id: string, updates: Partial<Employee>) => {
-    setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...updates } : e)));
-    showToast(`Staff profile updated`, 'success');
-  };
-
   const submitLeaveRequest = (req: Omit<StaffLeaveRequest, 'id' | 'requestedAt' | 'status'>) => {
     const newReq: StaffLeaveRequest = {
       ...req,
@@ -4228,7 +4322,10 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         availableRoles,
         organization,
         currentProperty,
+        updateProperty,
         outlets,
+        addOutlet,
+        updateOutlet,
         currentOutlet,
         setCurrentOutlet,
         terminals,
@@ -4238,6 +4335,7 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         employees,
         addEmployee,
         updateEmployee,
+        deleteEmployee,
         leaveRequests,
         submitLeaveRequest,
         approveLeaveRequest,
@@ -4254,19 +4352,30 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         requestSalaryAdvance,
         approveSalaryAdvance,
         stockItems,
+        addStockItem,
+        updateStockItem,
+        deleteStockItem,
         stockLocations,
         stockMovements,
         products,
+        addProduct,
+        updateProduct,
+        deleteProduct,
         transferStock,
         declareWaste,
         recordStockCountAdjustment,
         tables,
+        addTable,
+        updateTable,
+        deleteTable,
         activeOrder,
         orders,
         createOrderForTable,
         createQuickBarTab,
         selectOrder,
         addItemToOrder,
+        updateItemSeatAndCourse,
+        fireHeldCourse,
         removeItemFromOrder,
         sendOrderToKitchenAndBar,
         applyCompToItem,
