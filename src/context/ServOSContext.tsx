@@ -131,9 +131,18 @@ interface ServOSContextType {
     productId: string,
     portionVolume?: number,
     modifiers?: { modifierId: string; name: string; priceDelta: number }[],
-    selectedMixers?: string[]
+    selectedMixers?: string[],
+    seatLabel?: string,
+    courseName?: 'Drinks' | 'Starters' | 'Mains' | 'Dessert'
   ) => void;
   removeItemFromOrder: (itemId: string) => void;
+  updateItemSeatAndCourse: (
+    itemId: string,
+    seatLabel?: string,
+    courseName?: 'Drinks' | 'Starters' | 'Mains' | 'Dessert',
+    courseStatus?: 'HELD' | 'FIRED'
+  ) => void;
+  fireHeldCourse: (courseName: 'Drinks' | 'Starters' | 'Mains' | 'Dessert') => void;
   sendOrderToKitchenAndBar: () => void;
   applyCompToItem: (itemId: string, reason: string) => void;
   applyOrderDiscount: (discountPct: number, reason: string) => void;
@@ -2237,7 +2246,9 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     productId: string,
     portionVolume?: number,
     modifiers?: { modifierId: string; name: string; priceDelta: number }[],
-    selectedMixers?: string[]
+    selectedMixers?: string[],
+    seatLabel?: string,
+    courseName?: 'Drinks' | 'Starters' | 'Mains' | 'Dessert'
   ) => {
     let current = activeOrder;
     if (!current) {
@@ -2253,6 +2264,12 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       unitPrice += modTotal;
     }
 
+    // Default course based on product category
+    const autoCourse: 'Drinks' | 'Starters' | 'Mains' | 'Dessert' = courseName || (
+      prod.category === 'SPIRITS' || prod.category === 'COCKTAIL' || prod.category === 'BEER' ? 'Drinks' :
+      prod.category === 'FOOD' ? 'Mains' : 'Starters'
+    );
+
     const newItem: OrderItem = {
       id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       productId: prod.id,
@@ -2265,6 +2282,9 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       totalPrice: unitPrice,
       modifiers: modifiers || [],
       selectedMixers: selectedMixers || [],
+      seatLabel: seatLabel || 'Seat 1',
+      courseName: autoCourse,
+      courseStatus: autoCourse === 'Mains' || autoCourse === 'Dessert' ? 'HELD' : 'FIRED',
       state: 'OPEN',
       sentAt: undefined
     };
@@ -2282,6 +2302,45 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setActiveOrder(updatedOrder);
     setOrders(prev => prev.map(o => (o.id === updatedOrder.id ? updatedOrder : o)));
+  };
+
+  const updateItemSeatAndCourse = (
+    itemId: string,
+    seatLabel?: string,
+    courseName?: 'Drinks' | 'Starters' | 'Mains' | 'Dessert',
+    courseStatus?: 'HELD' | 'FIRED'
+  ) => {
+    if (!activeOrder) return;
+    const newItems = activeOrder.items.map(item => {
+      if (item.id === itemId) {
+        return {
+          ...item,
+          ...(seatLabel !== undefined ? { seatLabel } : {}),
+          ...(courseName !== undefined ? { courseName } : {}),
+          ...(courseStatus !== undefined ? { courseStatus } : {})
+        };
+      }
+      return item;
+    });
+
+    const updated: Order = { ...activeOrder, items: newItems };
+    setActiveOrder(updated);
+    setOrders(prev => prev.map(o => (o.id === updated.id ? updated : o)));
+  };
+
+  const fireHeldCourse = (courseName: 'Drinks' | 'Starters' | 'Mains' | 'Dessert') => {
+    if (!activeOrder) return;
+    const newItems = activeOrder.items.map(item => {
+      if (item.courseName === courseName && item.courseStatus === 'HELD') {
+        return { ...item, courseStatus: 'FIRED' as const, state: 'ROUTED' as const };
+      }
+      return item;
+    });
+
+    const updated: Order = { ...activeOrder, state: 'SENT', items: newItems };
+    setActiveOrder(updated);
+    setOrders(prev => prev.map(o => (o.id === updated.id ? updated : o)));
+    showToast(`Course "${courseName}" fired to Kitchen/Bar KDS pass!`, 'success');
   };
 
   const removeItemFromOrder = (itemId: string) => {

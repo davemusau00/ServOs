@@ -201,6 +201,9 @@ export interface OrderItem {
   state: OrderItemState;
   sentAt?: string;
   kitchenNote?: string;
+  seatLabel?: string; // e.g. "Seat 1", "Seat 2", "Shared"
+  courseName?: 'Drinks' | 'Starters' | 'Mains' | 'Dessert';
+  courseStatus?: 'HELD' | 'FIRED';
   isComp?: boolean;
   compReason?: string;
   compApprovedBy?: string;

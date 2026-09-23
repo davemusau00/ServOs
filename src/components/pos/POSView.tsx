@@ -49,6 +49,8 @@ export const POSView: React.FC = () => {
     selectOrder,
     addItemToOrder,
     removeItemFromOrder,
+    updateItemSeatAndCourse,
+    fireHeldCourse,
     sendOrderToKitchenAndBar,
     applyCompToItem,
     applyOrderDiscount,
@@ -558,6 +560,32 @@ export const POSView: React.FC = () => {
           )}
         </div>
 
+        {/* Course Firing Control Bar */}
+        {activeOrder && activeOrder.items.length > 0 && (
+          <div className="px-3 py-2 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-[11px] gap-1 shrink-0 overflow-x-auto">
+            <span className="text-slate-400 font-mono text-[10px] shrink-0">Fire Course:</span>
+            <div className="flex items-center gap-1.5">
+              {(['Drinks', 'Starters', 'Mains', 'Dessert'] as const).map(c => {
+                const hasHeld = activeOrder.items.some(i => i.courseName === c && i.courseStatus === 'HELD');
+                return (
+                  <button
+                    key={c}
+                    onClick={() => fireHeldCourse(c)}
+                    disabled={!hasHeld}
+                    className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold transition-colors ${
+                      hasHeld
+                        ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer shadow-xs animate-pulse'
+                        : 'bg-slate-800/60 text-slate-500 cursor-not-allowed'
+                    }`}
+                  >
+                    Fire {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Order Items List */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {!activeOrder || activeOrder.items.length === 0 ? (
@@ -580,7 +608,7 @@ export const POSView: React.FC = () => {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-semibold text-xs text-slate-100 truncate">
                         {item.productName}
                       </span>
@@ -594,6 +622,43 @@ export const POSView: React.FC = () => {
                           COMP
                         </span>
                       )}
+                    </div>
+
+                    {/* Seat & Course badges / controls */}
+                    <div className="mt-1 flex items-center gap-2 flex-wrap">
+                      <select
+                        value={item.seatLabel || 'Seat 1'}
+                        onChange={(e) => updateItemSeatAndCourse(item.id, e.target.value)}
+                        className="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 font-mono focus:outline-none focus:border-amber-500"
+                      >
+                        <option value="Seat 1">Seat 1</option>
+                        <option value="Seat 2">Seat 2</option>
+                        <option value="Seat 3">Seat 3</option>
+                        <option value="Seat 4">Seat 4</option>
+                        <option value="Shared">Shared</option>
+                      </select>
+
+                      <select
+                        value={item.courseName || 'Drinks'}
+                        onChange={(e) => updateItemSeatAndCourse(item.id, undefined, e.target.value as any)}
+                        className="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 font-mono focus:outline-none focus:border-amber-500"
+                      >
+                        <option value="Drinks">Drinks</option>
+                        <option value="Starters">Starters</option>
+                        <option value="Mains">Mains</option>
+                        <option value="Dessert">Dessert</option>
+                      </select>
+
+                      <button
+                        onClick={() => updateItemSeatAndCourse(item.id, undefined, undefined, item.courseStatus === 'HELD' ? 'FIRED' : 'HELD')}
+                        className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold transition-colors ${
+                          item.courseStatus === 'HELD'
+                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        }`}
+                      >
+                        {item.courseStatus === 'HELD' ? '⏸ HELD' : '🔥 FIRED'}
+                      </button>
                     </div>
 
                     {/* Modifiers / Mixers */}
