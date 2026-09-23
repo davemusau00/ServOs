@@ -401,7 +401,7 @@ export const StaffCashView: React.FC = () => {
 
               <button
                 onClick={() => setIsAddStaffModalOpen(true)}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 shrink-0 min-h-[40px]"
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 shrink-0 min-h-[40px] w-full sm:w-auto"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>Onboard New Staff</span>
@@ -518,7 +518,7 @@ export const StaffCashView: React.FC = () => {
         {activeTab === 'LEAVE' && (
           <div className="space-y-6 max-w-6xl mx-auto">
             {/* Header Controls */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-xl">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-xl">
               <div>
                 <h3 className="text-sm font-bold text-white">Staff Leave Applications & Annual Allowances</h3>
                 <p className="text-xs text-slate-400 font-mono mt-0.5">
@@ -526,13 +526,13 @@ export const StaffCashView: React.FC = () => {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs overflow-x-auto scrollbar-none max-w-full">
                   {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(st => (
                     <button
                       key={st}
                       onClick={() => setLeaveFilter(st)}
-                      className={`px-2.5 py-1 rounded font-medium transition-colors ${
+                      className={`px-2.5 py-1 rounded font-medium transition-colors whitespace-nowrap ${
                         leaveFilter === st ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
                       }`}
                     >
@@ -543,7 +543,7 @@ export const StaffCashView: React.FC = () => {
 
                 <button
                   onClick={() => setIsLeaveModalOpen(true)}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 min-h-[38px]"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 shrink-0 min-h-[38px] w-full sm:w-auto"
                 >
                   <Calendar className="w-4 h-4" />
                   <span>Apply for Leave</span>

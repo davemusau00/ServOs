@@ -271,13 +271,12 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Mobile Compact Search Trigger Button (< sm) */}
             <button
               onClick={() => setSearchModalOpen(true)}
-              className="sm:hidden flex items-center justify-center gap-1.5 px-2 py-1 bg-slate-950/60 hover:bg-slate-800 border border-slate-750 rounded-lg text-slate-300 text-xs shrink-0"
+              className="sm:hidden flex items-center justify-center p-1.5 bg-slate-950/60 hover:bg-slate-800 border border-slate-750 rounded-lg text-slate-300 text-xs shrink-0"
               title="Global Search"
             >
               <Search className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-[11px] font-medium">Search</span>
               {predictiveAlerts.length > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse ml-0.5" />
               )}
             </button>
           </div>
@@ -389,8 +388,8 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Offline Mode Toggle & Sync */}
-            <div className="flex items-center gap-1">
+            {/* Offline Mode Toggle & Sync (Hidden on extra small mobile screens < sm, available in menu drawer) */}
+            <div className="hidden sm:flex items-center gap-1">
               <button
                 onClick={toggleOfflineMode}
                 title={isOffline ? 'Offline Mode Active' : 'Network Online'}

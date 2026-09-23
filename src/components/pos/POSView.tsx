@@ -470,7 +470,7 @@ export const POSView: React.FC = () => {
 
         {/* MOBILE STICKY FLOATING CART BAR (shows on Catalog tab when ticket has items) */}
         {activeOrder && activeOrder.items.length > 0 && (
-          <div className="md:hidden p-3 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md flex items-center justify-between gap-3 shadow-xl shrink-0">
+          <div className="md:hidden p-3 pb-18 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md flex items-center justify-between gap-3 shadow-xl shrink-0">
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-bold text-white font-mono">{activeOrder.orderNumber}</span>
@@ -747,7 +747,7 @@ export const POSView: React.FC = () => {
 
         {/* Order Financial Calculations (Kenya 16% VAT + 2% Catering Levy + Min Spend) */}
         {activeOrder && (
-          <div className="p-3.5 bg-slate-950 border-t border-slate-800 space-y-1.5 text-xs">
+          <div className="p-3.5 pb-20 md:pb-3.5 bg-slate-950 border-t border-slate-800 space-y-1.5 text-xs">
             <div className="flex justify-between text-slate-400 font-mono">
               <span>Subtotal (Ex-Tax)</span>
               <span className="tabular-nums">KES {activeOrder.subtotal.toLocaleString()}</span>
