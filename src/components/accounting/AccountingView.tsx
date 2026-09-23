@@ -111,7 +111,7 @@ export const AccountingView: React.FC = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 lg:pb-8">
+      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8">
         {/* VIEW 1: Journal Entries Stream */}
         {activeTab === 'JOURNALS' && (
           <div className="space-y-3">
@@ -125,41 +125,43 @@ export const AccountingView: React.FC = () => {
                   {/* Summary Bar */}
                   <div
                     onClick={() => setExpandedJeId(isExpanded ? null : entry.id)}
-                    className="p-3.5 bg-slate-850 hover:bg-slate-800 cursor-pointer flex items-center justify-between transition-colors"
+                    className="p-3 sm:p-3.5 bg-slate-850 hover:bg-slate-800 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      {isExpanded ? (
-                        <ChevronDown className="w-4 h-4 text-slate-400" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-slate-400" />
-                      )}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-white font-mono">
+                    <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                      <div className="pt-0.5 sm:pt-0 shrink-0">
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-slate-400" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-slate-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <span className="font-bold text-xs sm:text-sm text-white font-mono shrink-0">
                             {entry.entryNumber}
                           </span>
-                          <span className="text-[10px] bg-slate-800 text-amber-300 font-mono px-2 py-0.5 rounded font-semibold border border-slate-700">
+                          <span className="text-[10px] bg-slate-800 text-amber-300 font-mono px-2 py-0.5 rounded font-semibold border border-slate-700 shrink-0">
                             {entry.sourceType} #{entry.sourceId}
                           </span>
                           {entry.balanced ? (
-                            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono px-2 py-0.5 rounded font-bold">
+                            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono px-2 py-0.5 rounded font-bold shrink-0">
                               BALANCED
                             </span>
                           ) : (
-                            <span className="text-[10px] bg-rose-500/20 text-rose-300 font-mono px-2 py-0.5 rounded font-bold">
+                            <span className="text-[10px] bg-rose-500/20 text-rose-300 font-mono px-2 py-0.5 rounded font-bold shrink-0">
                               UNBALANCED
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-300 mt-0.5">{entry.memo}</p>
+                        <p className="text-xs text-slate-300 mt-1 line-clamp-1 sm:line-clamp-2">{entry.memo}</p>
                       </div>
                     </div>
 
-                    <div className="text-right font-mono">
-                      <div className="text-xs text-slate-400">
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-1 font-mono shrink-0 pl-6 sm:pl-0 border-t sm:border-t-0 border-slate-800/60 pt-1.5 sm:pt-0">
+                      <div className="text-[11px] sm:text-xs text-slate-400 whitespace-nowrap">
                         {new Date(entry.postedAt).toLocaleDateString()} {new Date(entry.postedAt).toLocaleTimeString()}
                       </div>
-                      <div className="text-sm font-bold text-slate-100 tabular-nums">
+                      <div className="text-xs sm:text-sm font-bold text-slate-100 tabular-nums whitespace-nowrap">
                         KES {entry.totalDebit.toLocaleString()}
                       </div>
                     </div>
@@ -167,8 +169,8 @@ export const AccountingView: React.FC = () => {
 
                   {/* Expanded Debit/Credit Lines */}
                   {isExpanded && (
-                    <div className="p-4 bg-slate-950/60 border-t border-slate-800">
-                      <table className="w-full text-left text-xs">
+                    <div className="p-3 sm:p-4 bg-slate-950/60 border-t border-slate-800 overflow-x-auto scrollbar-thin">
+                      <table className="w-full text-left text-xs min-w-[500px]">
                         <thead className="text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800 pb-1">
                           <tr>
                             <th className="pb-2">Account Code</th>
@@ -234,7 +236,8 @@ export const AccountingView: React.FC = () => {
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">
-              <table className="w-full text-left text-xs">
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-left text-xs min-w-[650px]">
                 <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
                   <tr>
                     <th className="p-3">Invoice Number</th>
@@ -294,6 +297,7 @@ export const AccountingView: React.FC = () => {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -301,7 +305,8 @@ export const AccountingView: React.FC = () => {
         {/* VIEW 3: Chart of Accounts */}
         {activeTab === 'COA' && (
           <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">
-            <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full text-left text-xs min-w-[500px]">
               <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
                 <tr>
                   <th className="p-3">Code</th>
@@ -332,6 +337,7 @@ export const AccountingView: React.FC = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 

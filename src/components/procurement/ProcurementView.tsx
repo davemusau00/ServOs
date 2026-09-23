@@ -99,11 +99,12 @@ export const ProcurementView: React.FC = () => {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 lg:pb-8">
+      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8">
         {activeTab === 'POS' && (
           <div className="space-y-4">
             <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">
-              <table className="w-full text-left text-xs">
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-left text-xs min-w-[720px]">
                 <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
                   <tr>
                     <th className="p-3">PO Number</th>
@@ -169,6 +170,7 @@ export const ProcurementView: React.FC = () => {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -186,47 +188,49 @@ export const ProcurementView: React.FC = () => {
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
-                  <tr>
-                    <th className="p-3">Purchase Order (PO)</th>
-                    <th className="p-3">Goods Receipt (GRN)</th>
-                    <th className="p-3">Supplier Invoice</th>
-                    <th className="p-3">Quantity Match</th>
-                    <th className="p-3">Price Match</th>
-                    <th className="p-3 text-right">Audit Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800 font-mono">
-                  <tr className="hover:bg-slate-850">
-                    <td className="p-3">
-                      <div className="font-bold text-slate-200">PO-2026-0919-01</div>
-                      <div className="text-[11px] text-slate-400">24 btl Jameson, 12 btl Tanqueray</div>
-                    </td>
-                    <td className="p-3">
-                      <div className="text-emerald-400 font-bold">GRN-2026-0482</div>
-                      <div className="text-[11px] text-slate-400">Received 36 / Rejected 0</div>
-                    </td>
-                    <td className="p-3">
-                      <div className="text-slate-200">INV-EAD-98421</div>
-                      <div className="text-[11px] text-slate-400">KES 143,840.00</div>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
-                        100% MATCH
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
-                        EXACT (0% VAR)
-                      </span>
-                    </td>
-                    <td className="p-3 text-right font-bold text-emerald-400">
-                      APPROVED FOR AP POSTING
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-left text-xs min-w-[720px]">
+                  <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">Purchase Order (PO)</th>
+                      <th className="p-3">Goods Receipt (GRN)</th>
+                      <th className="p-3">Supplier Invoice</th>
+                      <th className="p-3">Quantity Match</th>
+                      <th className="p-3">Price Match</th>
+                      <th className="p-3 text-right">Audit Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 font-mono">
+                    <tr className="hover:bg-slate-850">
+                      <td className="p-3">
+                        <div className="font-bold text-slate-200">PO-2026-0919-01</div>
+                        <div className="text-[11px] text-slate-400">24 btl Jameson, 12 btl Tanqueray</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="text-emerald-400 font-bold">GRN-2026-0482</div>
+                        <div className="text-[11px] text-slate-400">Received 36 / Rejected 0</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="text-slate-200">INV-EAD-98421</div>
+                        <div className="text-[11px] text-slate-400">KES 143,840.00</div>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
+                          100% MATCH
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
+                          EXACT (0% VAR)
+                        </span>
+                      </td>
+                      <td className="p-3 text-right font-bold text-emerald-400">
+                        APPROVED FOR AP POSTING
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -234,58 +238,60 @@ export const ProcurementView: React.FC = () => {
         {/* VIEW 3: Accounts Payable Aging */}
         {activeTab === 'AGING' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-4 gap-4">
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-lg">
-                <span className="text-xs text-slate-400 font-mono uppercase">Current (0-30 Days)</span>
-                <div className="text-xl font-bold font-mono text-emerald-400 mt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-3.5 sm:p-4 bg-slate-900 border border-slate-800 rounded-lg">
+                <span className="text-[11px] sm:text-xs text-slate-400 font-mono uppercase">Current (0-30 Days)</span>
+                <div className="text-lg sm:text-xl font-bold font-mono text-emerald-400 mt-1">
                   KES 143,840
                 </div>
               </div>
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-lg">
-                <span className="text-xs text-slate-400 font-mono uppercase">31 - 60 Days</span>
-                <div className="text-xl font-bold font-mono text-amber-400 mt-1">
+              <div className="p-3.5 sm:p-4 bg-slate-900 border border-slate-800 rounded-lg">
+                <span className="text-[11px] sm:text-xs text-slate-400 font-mono uppercase">31 - 60 Days</span>
+                <div className="text-lg sm:text-xl font-bold font-mono text-amber-400 mt-1">
                   KES 0
                 </div>
               </div>
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-lg">
-                <span className="text-xs text-slate-400 font-mono uppercase">61 - 90 Days</span>
-                <div className="text-xl font-bold font-mono text-slate-400 mt-1">
+              <div className="p-3.5 sm:p-4 bg-slate-900 border border-slate-800 rounded-lg">
+                <span className="text-[11px] sm:text-xs text-slate-400 font-mono uppercase">61 - 90 Days</span>
+                <div className="text-lg sm:text-xl font-bold font-mono text-slate-400 mt-1">
                   KES 0
                 </div>
               </div>
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-lg">
-                <span className="text-xs text-slate-400 font-mono uppercase">90+ Days Overdue</span>
-                <div className="text-xl font-bold font-mono text-rose-400 mt-1">
+              <div className="p-3.5 sm:p-4 bg-slate-900 border border-slate-800 rounded-lg">
+                <span className="text-[11px] sm:text-xs text-slate-400 font-mono uppercase">90+ Days Overdue</span>
+                <div className="text-lg sm:text-xl font-bold font-mono text-rose-400 mt-1">
                   KES 0
                 </div>
               </div>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
-                  <tr>
-                    <th className="p-3">Supplier Name</th>
-                    <th className="p-3">KRA PIN</th>
-                    <th className="p-3">Terms</th>
-                    <th className="p-3">Current</th>
-                    <th className="p-3">30 Days</th>
-                    <th className="p-3 text-right">Total Outstanding</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800 font-mono">
-                  <tr className="hover:bg-slate-850">
-                    <td className="p-3 font-bold text-slate-200">
-                      East African Distillers & Wines
-                    </td>
-                    <td className="p-3 text-slate-400">P051009876C</td>
-                    <td className="p-3 text-slate-300">14 Days</td>
-                    <td className="p-3 tabular-nums font-bold text-emerald-400">KES 143,840</td>
-                    <td className="p-3 tabular-nums text-slate-500">KES 0</td>
-                    <td className="p-3 text-right tabular-nums font-bold text-slate-100">KES 143,840</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-left text-xs min-w-[650px]">
+                  <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">Supplier Name</th>
+                      <th className="p-3">KRA PIN</th>
+                      <th className="p-3">Terms</th>
+                      <th className="p-3">Current</th>
+                      <th className="p-3">30 Days</th>
+                      <th className="p-3 text-right">Total Outstanding</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 font-mono">
+                    <tr className="hover:bg-slate-850">
+                      <td className="p-3 font-bold text-slate-200">
+                        East African Distillers & Wines
+                      </td>
+                      <td className="p-3 text-slate-400">P051009876C</td>
+                      <td className="p-3 text-slate-300">14 Days</td>
+                      <td className="p-3 tabular-nums font-bold text-emerald-400">KES 143,840</td>
+                      <td className="p-3 tabular-nums text-slate-500">KES 0</td>
+                      <td className="p-3 text-right tabular-nums font-bold text-slate-100">KES 143,840</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

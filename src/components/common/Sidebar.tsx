@@ -60,8 +60,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`hidden lg:flex flex-col shrink-0 h-screen sticky top-0 z-30 bg-slate-900 border-r border-slate-800 transition-all duration-200 select-none ${
-        isCollapsed ? 'w-[74px]' : 'w-64'
+      className={`hidden md:flex flex-col shrink-0 h-screen sticky top-0 z-30 bg-slate-900 border-r border-slate-800 transition-all duration-200 select-none ${
+        isCollapsed ? 'w-[68px] lg:w-[74px]' : 'w-64'
       }`}
     >
       {/* Brand & Collapse Header */}

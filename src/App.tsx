@@ -18,7 +18,9 @@ const MainApp: React.FC = () => {
   const [isHardwareModalOpen, setIsHardwareModalOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('servos_sidebar_collapsed') === 'true';
+      const saved = localStorage.getItem('servos_sidebar_collapsed');
+      if (saved !== null) return saved === 'true';
+      return typeof window !== 'undefined' && window.innerWidth < 1024;
     } catch {
       return false;
     }
@@ -57,7 +59,7 @@ const MainApp: React.FC = () => {
           onToggleSidebarCollapse={handleToggleSidebar}
         />
 
-        <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden pb-14 lg:pb-0">
+        <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden pb-14 md:pb-0">
           {activeTab === 'pos' && <POSView />}
           {activeTab === 'kds' && <KDSView />}
           {activeTab === 'hotel' && <HotelPMSView />}

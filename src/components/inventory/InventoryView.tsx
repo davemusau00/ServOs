@@ -143,11 +143,12 @@ export const InventoryView: React.FC = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 lg:pb-8">
+      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8">
         {/* VIEW 1: Stock Items & Levels */}
         {activeTab === 'ITEMS' && (
           <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">
-            <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full text-left text-xs min-w-[750px]">
               <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
                 <tr>
                   <th className="p-3">Item Code & Name</th>
@@ -202,13 +203,14 @@ export const InventoryView: React.FC = () => {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
 
         {/* VIEW 2: Actual vs Theoretical (AvT) Yield Report (Section 13, 27) */}
         {activeTab === 'AVT' && (
           <div className="space-y-4">
-            <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-800 flex items-center justify-between">
+            <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <FileSpreadsheet className="w-4 h-4 text-amber-400" />
@@ -218,91 +220,93 @@ export const InventoryView: React.FC = () => {
                   Compares POS sale depletions + declared spillage against actual physical bottle/ml counts.
                 </p>
               </div>
-              <div className="text-xs font-mono bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded">
+              <div className="text-xs font-mono bg-amber-500/10 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded shrink-0">
                 Configured Tolerance: 2.5% of Theoretical
               </div>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
-                  <tr>
-                    <th className="p-3">Stock Item</th>
-                    <th className="p-3">Location</th>
-                    <th className="p-3">Opening Stock</th>
-                    <th className="p-3">POS Theoretical Usage</th>
-                    <th className="p-3">Declared Waste</th>
-                    <th className="p-3">Expected In-Stock</th>
-                    <th className="p-3">Actual Count</th>
-                    <th className="p-3">Yield Variance</th>
-                    <th className="p-3 text-right">Variance Loss (KES)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800 font-mono">
-                  {/* Jameson AvT row with real variance */}
-                  <tr className="hover:bg-slate-850">
-                    <td className="p-3 font-bold text-slate-200">
-                      Jameson Irish Whiskey 750ml
-                    </td>
-                    <td className="p-3 text-slate-400">Main Bar Beverage Station</td>
-                    <td className="p-3 tabular-nums">4,500 ml</td>
-                    <td className="p-3 tabular-nums text-amber-300">-210 ml (POS Shots)</td>
-                    <td className="p-3 tabular-nums text-rose-350">-90 ml (Spill)</td>
-                    <td className="p-3 tabular-nums font-bold">4,200 ml</td>
-                    <td className="p-3 tabular-nums font-bold text-slate-100">4,020 ml</td>
-                    <td className="p-3">
-                      <span className="text-rose-400 font-bold bg-rose-500/20 px-2 py-0.5 rounded">
-                        -180 ml (-4.2%)
-                      </span>
-                    </td>
-                    <td className="p-3 text-right font-bold text-rose-400 tabular-nums">
-                      -KES 671.40
-                    </td>
-                  </tr>
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-left text-xs min-w-[800px]">
+                  <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">Stock Item</th>
+                      <th className="p-3">Location</th>
+                      <th className="p-3">Opening Stock</th>
+                      <th className="p-3">POS Theoretical Usage</th>
+                      <th className="p-3">Declared Waste</th>
+                      <th className="p-3">Expected In-Stock</th>
+                      <th className="p-3">Actual Count</th>
+                      <th className="p-3">Yield Variance</th>
+                      <th className="p-3 text-right">Variance Loss (KES)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 font-mono">
+                    {/* Jameson AvT row with real variance */}
+                    <tr className="hover:bg-slate-850">
+                      <td className="p-3 font-bold text-slate-200">
+                        Jameson Irish Whiskey 750ml
+                      </td>
+                      <td className="p-3 text-slate-400">Main Bar Beverage Station</td>
+                      <td className="p-3 tabular-nums">4,500 ml</td>
+                      <td className="p-3 tabular-nums text-amber-300">-210 ml (POS Shots)</td>
+                      <td className="p-3 tabular-nums text-rose-350">-90 ml (Spill)</td>
+                      <td className="p-3 tabular-nums font-bold">4,200 ml</td>
+                      <td className="p-3 tabular-nums font-bold text-slate-100">4,020 ml</td>
+                      <td className="p-3">
+                        <span className="text-rose-400 font-bold bg-rose-500/20 px-2 py-0.5 rounded">
+                          -180 ml (-4.2%)
+                        </span>
+                      </td>
+                      <td className="p-3 text-right font-bold text-rose-400 tabular-nums">
+                        -KES 671.40
+                      </td>
+                    </tr>
 
-                  {/* Tanqueray Gin AvT */}
-                  <tr className="hover:bg-slate-850">
-                    <td className="p-3 font-bold text-slate-200">
-                      Tanqueray London Dry Gin 1000ml
-                    </td>
-                    <td className="p-3 text-slate-400">Main Bar Beverage Station</td>
-                    <td className="p-3 tabular-nums">7,000 ml</td>
-                    <td className="p-3 tabular-nums text-amber-300">-200 ml</td>
-                    <td className="p-3 tabular-nums text-slate-400">0 ml</td>
-                    <td className="p-3 tabular-nums font-bold">6,800 ml</td>
-                    <td className="p-3 tabular-nums font-bold text-slate-100">6,800 ml</td>
-                    <td className="p-3">
-                      <span className="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
-                        0 ml (100% Yield)
-                      </span>
-                    </td>
-                    <td className="p-3 text-right font-bold text-emerald-400 tabular-nums">
-                      KES 0.00
-                    </td>
-                  </tr>
+                    {/* Tanqueray Gin AvT */}
+                    <tr className="hover:bg-slate-850">
+                      <td className="p-3 font-bold text-slate-200">
+                        Tanqueray London Dry Gin 1000ml
+                      </td>
+                      <td className="p-3 text-slate-400">Main Bar Beverage Station</td>
+                      <td className="p-3 tabular-nums">7,000 ml</td>
+                      <td className="p-3 tabular-nums text-amber-300">-200 ml</td>
+                      <td className="p-3 tabular-nums text-slate-400">0 ml</td>
+                      <td className="p-3 tabular-nums font-bold">6,800 ml</td>
+                      <td className="p-3 tabular-nums font-bold text-slate-100">6,800 ml</td>
+                      <td className="p-3">
+                        <span className="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
+                          0 ml (100% Yield)
+                        </span>
+                      </td>
+                      <td className="p-3 text-right font-bold text-emerald-400 tabular-nums">
+                        KES 0.00
+                      </td>
+                    </tr>
 
-                  {/* Tusker Lager AvT */}
-                  <tr className="hover:bg-slate-850">
-                    <td className="p-3 font-bold text-slate-200">
-                      Tusker Lager 500ml
-                    </td>
-                    <td className="p-3 text-slate-400">Main Bar Beverage Station</td>
-                    <td className="p-3 tabular-nums">120 units</td>
-                    <td className="p-3 tabular-nums text-amber-300">-24 units</td>
-                    <td className="p-3 tabular-nums text-slate-400">0 units</td>
-                    <td className="p-3 tabular-nums font-bold">96 units</td>
-                    <td className="p-3 tabular-nums font-bold text-slate-100">96 units</td>
-                    <td className="p-3">
-                      <span className="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
-                        0 units (Exact)
-                      </span>
-                    </td>
-                    <td className="p-3 text-right font-bold text-emerald-400 tabular-nums">
-                      KES 0.00
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                    {/* Tusker Lager AvT */}
+                    <tr className="hover:bg-slate-850">
+                      <td className="p-3 font-bold text-slate-200">
+                        Tusker Lager 500ml
+                      </td>
+                      <td className="p-3 text-slate-400">Main Bar Beverage Station</td>
+                      <td className="p-3 tabular-nums">120 units</td>
+                      <td className="p-3 tabular-nums text-amber-300">-24 units</td>
+                      <td className="p-3 tabular-nums text-slate-400">0 units</td>
+                      <td className="p-3 tabular-nums font-bold">96 units</td>
+                      <td className="p-3 tabular-nums font-bold text-slate-100">96 units</td>
+                      <td className="p-3">
+                        <span className="text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">
+                          0 units (Exact)
+                        </span>
+                      </td>
+                      <td className="p-3 text-right font-bold text-emerald-400 tabular-nums">
+                        KES 0.00
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -310,15 +314,15 @@ export const InventoryView: React.FC = () => {
         {/* VIEW 3: Immutable Stock Movement Ledger */}
         {activeTab === 'MOVEMENTS' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between overflow-x-auto scrollbar-none pb-1">
+              <div className="flex items-center gap-1.5 min-w-max">
                 {['ALL', 'SALE_CONSUMPTION', 'TRANSFER_IN', 'TRANSFER_OUT', 'WASTE', 'PURCHASE_RECEIPT', 'COUNT_ADJUSTMENT'].map(mvt => (
                   <button
                     key={mvt}
                     onClick={() => setMovementFilter(mvt)}
-                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
+                    className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors whitespace-nowrap ${
                       movementFilter === mvt
-                        ? 'bg-amber-500 text-slate-950 font-bold'
+                        ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-750'
                     }`}
                   >
@@ -329,63 +333,65 @@ export const InventoryView: React.FC = () => {
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-md">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
-                  <tr>
-                    <th className="p-3">Timestamp</th>
-                    <th className="p-3">Item Name</th>
-                    <th className="p-3">Location</th>
-                    <th className="p-3">Type</th>
-                    <th className="p-3">Source Ref / Reason</th>
-                    <th className="p-3">Quantity Delta</th>
-                    <th className="p-3">Cost Snapshot</th>
-                    <th className="p-3 text-right">Cost Valuation (KES)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800 font-mono">
-                  {filteredMovements.map(m => {
-                    const isPositive = m.quantityDelta > 0;
-                    return (
-                      <tr key={m.id} className="hover:bg-slate-850">
-                        <td className="p-3 text-slate-400 text-[11px]">
-                          {new Date(m.occurredAt).toLocaleDateString()} {new Date(m.occurredAt).toLocaleTimeString()}
-                        </td>
-                        <td className="p-3 font-semibold text-slate-200">
-                          {m.stockItemName}
-                        </td>
-                        <td className="p-3 text-slate-400">
-                          {m.locationName}
-                        </td>
-                        <td className="p-3">
-                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                            m.movementType === 'SALE_CONSUMPTION' ? 'bg-blue-500/20 text-blue-300' :
-                            m.movementType === 'PURCHASE_RECEIPT' ? 'bg-emerald-500/20 text-emerald-300' :
-                            m.movementType === 'WASTE' ? 'bg-rose-500/20 text-rose-300' :
-                            'bg-amber-500/20 text-amber-300'
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-left text-xs min-w-[850px]">
+                  <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">Timestamp</th>
+                      <th className="p-3">Item Name</th>
+                      <th className="p-3">Location</th>
+                      <th className="p-3">Type</th>
+                      <th className="p-3">Source Ref / Reason</th>
+                      <th className="p-3">Quantity Delta</th>
+                      <th className="p-3">Cost Snapshot</th>
+                      <th className="p-3 text-right">Cost Valuation (KES)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 font-mono">
+                    {filteredMovements.map(m => {
+                      const isPositive = m.quantityDelta > 0;
+                      return (
+                        <tr key={m.id} className="hover:bg-slate-850">
+                          <td className="p-3 text-slate-400 text-[11px]">
+                            {new Date(m.occurredAt).toLocaleDateString()} {new Date(m.occurredAt).toLocaleTimeString()}
+                          </td>
+                          <td className="p-3 font-semibold text-slate-200">
+                            {m.stockItemName}
+                          </td>
+                          <td className="p-3 text-slate-400">
+                            {m.locationName}
+                          </td>
+                          <td className="p-3">
+                            <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                              m.movementType === 'SALE_CONSUMPTION' ? 'bg-blue-500/20 text-blue-300' :
+                              m.movementType === 'PURCHASE_RECEIPT' ? 'bg-emerald-500/20 text-emerald-300' :
+                              m.movementType === 'WASTE' ? 'bg-rose-500/20 text-rose-300' :
+                              'bg-amber-500/20 text-amber-300'
+                            }`}>
+                              {m.movementType}
+                            </span>
+                          </td>
+                          <td className="p-3 text-slate-300">
+                            {m.sourceId ? `#${m.sourceId} ` : ''}
+                            <span className="text-slate-400 text-[11px]">{m.reasonCode}</span>
+                          </td>
+                          <td className={`p-3 font-bold tabular-nums ${
+                            isPositive ? 'text-emerald-400' : 'text-rose-400'
                           }`}>
-                            {m.movementType}
-                          </span>
-                        </td>
-                        <td className="p-3 text-slate-300">
-                          {m.sourceId ? `#${m.sourceId} ` : ''}
-                          <span className="text-slate-400 text-[11px]">{m.reasonCode}</span>
-                        </td>
-                        <td className={`p-3 font-bold tabular-nums ${
-                          isPositive ? 'text-emerald-400' : 'text-rose-400'
-                        }`}>
-                          {isPositive ? '+' : ''}{m.quantityDelta} {m.baseUnit}
-                        </td>
-                        <td className="p-3 text-slate-400 tabular-nums">
-                          KES {m.unitCostSnapshot.toFixed(2)}
-                        </td>
-                        <td className="p-3 text-right font-bold text-slate-200 tabular-nums">
-                          {m.totalCostValuation.toFixed(2)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            {isPositive ? '+' : ''}{m.quantityDelta} {m.baseUnit}
+                          </td>
+                          <td className="p-3 text-slate-400 tabular-nums">
+                            KES {m.unitCostSnapshot.toFixed(2)}
+                          </td>
+                          <td className="p-3 text-right font-bold text-slate-200 tabular-nums">
+                            {m.totalCostValuation.toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

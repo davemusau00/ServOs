@@ -325,7 +325,7 @@ export const StaffCashView: React.FC = () => {
       </div>
 
       {/* Main View Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 lg:pb-8">
+      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 pb-28 md:pb-8">
         
         {/* ================= TAB 1: STAFF DIRECTORY ================= */}
         {activeTab === 'STAFF' && (

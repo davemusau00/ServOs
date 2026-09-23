@@ -238,9 +238,9 @@ export const POSView: React.FC = () => {
   const totalItemsCount = activeOrder?.items.reduce((s, it) => s + it.quantity, 0) || 0;
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden bg-slate-950">
-      {/* MOBILE SEGMENT SELECTOR (< lg) */}
-      <div className="lg:hidden bg-slate-900 border-b border-slate-800 p-2 flex items-center justify-between gap-2 shrink-0">
+    <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden bg-slate-950">
+      {/* MOBILE SEGMENT SELECTOR (< md) */}
+      <div className="md:hidden bg-slate-900 border-b border-slate-800 p-2 flex items-center justify-between gap-2 shrink-0">
         <div className="grid grid-cols-2 w-full gap-1 p-1 bg-slate-950 rounded-lg">
           <button
             onClick={() => setMobileViewMode('CATALOG')}
@@ -277,7 +277,7 @@ export const POSView: React.FC = () => {
 
       {/* LEFT: Floorplan / Tables Bar + Search + Catalog Grid */}
       <div className={`flex-1 flex flex-col overflow-hidden border-r border-slate-800 ${
-        mobileViewMode === 'TICKET' ? 'hidden lg:flex' : 'flex'
+        mobileViewMode === 'TICKET' ? 'hidden md:flex' : 'flex'
       }`}>
         {/* Table & Tab Strip */}
         <div className="bg-slate-900/60 p-2.5 border-b border-slate-800 flex items-center justify-between gap-3 overflow-x-auto scrollbar-none shrink-0">
@@ -434,7 +434,7 @@ export const POSView: React.FC = () => {
 
         {/* MOBILE STICKY FLOATING CART BAR (shows on Catalog tab when ticket has items) */}
         {activeOrder && activeOrder.items.length > 0 && (
-          <div className="lg:hidden p-3 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md flex items-center justify-between gap-3 shadow-xl shrink-0">
+          <div className="md:hidden p-3 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md flex items-center justify-between gap-3 shadow-xl shrink-0">
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-bold text-white font-mono">{activeOrder.orderNumber}</span>
@@ -457,8 +457,8 @@ export const POSView: React.FC = () => {
       </div>
 
       {/* RIGHT: Active Tab / Order Ledger Sidebar */}
-      <div className={`w-full lg:w-[430px] bg-slate-900 flex flex-col h-full shrink-0 border-l border-slate-800 ${
-        mobileViewMode === 'CATALOG' ? 'hidden lg:flex' : 'flex'
+      <div className={`w-full md:w-[350px] lg:w-[430px] bg-slate-900 flex flex-col h-full shrink-0 border-l border-slate-800 ${
+        mobileViewMode === 'CATALOG' ? 'hidden md:flex' : 'flex'
       }`}>
         {/* Order Header */}
         <div className="p-3 sm:p-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
