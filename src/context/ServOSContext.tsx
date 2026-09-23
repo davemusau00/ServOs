@@ -31,6 +31,11 @@ import {
   Supplier,
   PurchaseOrder,
   Employee,
+  StaffLeaveRequest,
+  ShiftSchedule,
+  PayrollRun,
+  EmployeePayslip,
+  SalaryAdvance,
   AnomalyAlert,
   ApprovalRequest,
   EdgeDevice
@@ -48,6 +53,23 @@ interface ServOSContextType {
   currentUser: Employee;
   setCurrentUser: (emp: Employee) => void;
   employees: Employee[];
+  addEmployee: (emp: Omit<Employee, 'id'>) => void;
+  updateEmployee: (id: string, updates: Partial<Employee>) => void;
+  leaveRequests: StaffLeaveRequest[];
+  submitLeaveRequest: (req: Omit<StaffLeaveRequest, 'id' | 'requestedAt' | 'status'>) => void;
+  approveLeaveRequest: (requestId: string, reviewNotes?: string) => void;
+  rejectLeaveRequest: (requestId: string, reason: string) => void;
+  shiftSchedules: ShiftSchedule[];
+  clockInShift: (shiftId: string) => void;
+  clockOutShift: (shiftId: string) => void;
+  createShiftSchedule: (schedule: Omit<ShiftSchedule, 'id'>) => void;
+  payrollRuns: PayrollRun[];
+  generatePayrollRun: (period: string) => void;
+  approvePayrollRun: (payrollId: string) => void;
+  disbursePayrollRun: (payrollId: string) => void;
+  salaryAdvances: SalaryAdvance[];
+  requestSalaryAdvance: (employeeId: string, amount: number, reason: string) => void;
+  approveSalaryAdvance: (advanceId: string) => void;
 
   // Catalog & Inventory
   stockItems: StockItem[];
@@ -589,6 +611,7 @@ const initialAccounts: Account[] = [
   { id: 'acc-2050', code: '2050', name: 'Guest Advance Deposit Liability', type: 'LIABILITY', balance: 50000 },
   { id: 'acc-2100', code: '2100', name: 'Output VAT Payable (16%)', type: 'LIABILITY', balance: 68420 },
   { id: 'acc-2110', code: '2110', name: 'Catering Levy Payable (2%)', type: 'LIABILITY', balance: 8550 },
+  { id: 'acc-2120', code: '2120', name: 'Payroll Statutory Withholdings (PAYE, NSSF, NHIF, Housing)', type: 'LIABILITY', balance: 42100 },
   { id: 'acc-4010', code: '4010', name: 'F&B Revenue - Beverage (Bar)', type: 'REVENUE', balance: 345000 },
   { id: 'acc-4020', code: '4020', name: 'F&B Revenue - Kitchen (Grill)', type: 'REVENUE', balance: 184000 },
   { id: 'acc-4050', code: '4050', name: 'Room Accommodation Revenue', type: 'REVENUE', balance: 450000 },
@@ -596,7 +619,8 @@ const initialAccounts: Account[] = [
   { id: 'acc-5010', code: '5010', name: 'Cost of Goods Sold (COGS - Beverage)', type: 'EXPENSE', balance: 112000 },
   { id: 'acc-5020', code: '5020', name: 'Cost of Goods Sold (COGS - Kitchen)', type: 'EXPENSE', balance: 74000 },
   { id: 'acc-5050', code: '5050', name: 'Waste & Spillage Loss', type: 'EXPENSE', balance: 4200 },
-  { id: 'acc-5060', code: '5060', name: 'Complimentary & VIP Promo Expense', type: 'EXPENSE', balance: 12500 }
+  { id: 'acc-5060', code: '5060', name: 'Complimentary & VIP Promo Expense', type: 'EXPENSE', balance: 12500 },
+  { id: 'acc-5080', code: '5080', name: 'Salaries, Wages & Staff Welfare Expense', type: 'EXPENSE', balance: 284000 }
 ];
 
 const initialJournalEntries: JournalEntry[] = [
@@ -922,9 +946,22 @@ const initialEmployees: Employee[] = [
     email: 'david.omondi@grandnairobi.co.ke',
     phone: '+254 722 101 202',
     role: 'BARTENDER',
+    department: 'Food & Beverage',
     permissions: ['order.create', 'order.send', 'payment.cash', 'payment.mpesa'],
     hourlyRate: 350,
-    commissionRate: 0.05
+    baseSalary: 55000,
+    commissionRate: 0.05,
+    contractType: 'PERMANENT',
+    nationalId: '29841203',
+    kraPin: 'A004819230Z',
+    nssfNumber: 'NSSF-782190',
+    nhifNumber: 'NHIF-451923',
+    leaveBalance: 18,
+    leaveTaken: 3,
+    attendanceStatus: 'ON_DUTY',
+    bankName: 'KCB Bank Kenya',
+    bankAccount: '1102938471',
+    mpesaDisbursementNumber: '+254 722 101 202'
   },
   {
     id: 'emp-alice',
@@ -933,9 +970,22 @@ const initialEmployees: Employee[] = [
     email: 'alice.wambui@grandnairobi.co.ke',
     phone: '+254 733 202 303',
     role: 'CASHIER',
+    department: 'Finance & Admin',
     permissions: ['order.create', 'payment.cash', 'payment.mpesa', 'payment.card', 'till.open', 'till.close'],
     hourlyRate: 380,
-    commissionRate: 0.02
+    baseSalary: 62000,
+    commissionRate: 0.02,
+    contractType: 'PERMANENT',
+    nationalId: '31294812',
+    kraPin: 'A007419821W',
+    nssfNumber: 'NSSF-891024',
+    nhifNumber: 'NHIF-562910',
+    leaveBalance: 15,
+    leaveTaken: 6,
+    attendanceStatus: 'ON_DUTY',
+    bankName: 'Equity Bank Kenya',
+    bankAccount: '0180293847192',
+    mpesaDisbursementNumber: '+254 733 202 303'
   },
   {
     id: 'emp-mgr',
@@ -944,9 +994,22 @@ const initialEmployees: Employee[] = [
     email: 'marcus.kiprop@grandnairobi.co.ke',
     phone: '+254 711 303 404',
     role: 'MANAGER',
+    department: 'General Management',
     permissions: ['order.create', 'order.void', 'discount.override', 'comp.apply', 'approval.sign', 'reports.view'],
     hourlyRate: 650,
-    commissionRate: 0.08
+    baseSalary: 145000,
+    commissionRate: 0.08,
+    contractType: 'PERMANENT',
+    nationalId: '24109823',
+    kraPin: 'A001298471P',
+    nssfNumber: 'NSSF-410928',
+    nhifNumber: 'NHIF-109283',
+    leaveBalance: 21,
+    leaveTaken: 0,
+    attendanceStatus: 'ON_DUTY',
+    bankName: 'Standard Chartered Kenya',
+    bankAccount: '010049281729',
+    mpesaDisbursementNumber: '+254 711 303 404'
   },
   {
     id: 'emp-frontdesk',
@@ -955,9 +1018,680 @@ const initialEmployees: Employee[] = [
     email: 'stella.njeri@grandnairobi.co.ke',
     phone: '+254 700 404 505',
     role: 'RECEPTIONIST',
+    department: 'Front Desk & Rooms',
     permissions: ['hotel.checkin', 'hotel.checkout', 'folio.charge', 'payment.all'],
     hourlyRate: 400,
-    commissionRate: 0.03
+    baseSalary: 58000,
+    commissionRate: 0.03,
+    contractType: 'PERMANENT',
+    nationalId: '32918239',
+    kraPin: 'A009182736K',
+    nssfNumber: 'NSSF-928172',
+    nhifNumber: 'NHIF-672918',
+    leaveBalance: 14,
+    leaveTaken: 7,
+    attendanceStatus: 'ON_DUTY',
+    bankName: 'Co-operative Bank',
+    bankAccount: '01129384719200',
+    mpesaDisbursementNumber: '+254 700 404 505'
+  },
+  {
+    id: 'emp-chef',
+    code: 'EMP-05',
+    name: 'Joseph Mwangi',
+    email: 'joseph.mwangi@grandnairobi.co.ke',
+    phone: '+254 721 556 677',
+    role: 'CHEF',
+    department: 'Culinary / Kitchen',
+    permissions: ['order.create', 'order.send', 'kitchen.kds'],
+    hourlyRate: 550,
+    baseSalary: 110000,
+    commissionRate: 0.0,
+    contractType: 'PERMANENT',
+    nationalId: '25819203',
+    kraPin: 'A003819201L',
+    nssfNumber: 'NSSF-561928',
+    nhifNumber: 'NHIF-381920',
+    leaveBalance: 12,
+    leaveTaken: 9,
+    attendanceStatus: 'ON_DUTY',
+    bankName: 'NCBA Bank Kenya',
+    bankAccount: '1002938471',
+    mpesaDisbursementNumber: '+254 721 556 677'
+  },
+  {
+    id: 'emp-waiter',
+    code: 'EMP-06',
+    name: 'Kevin Otieno',
+    email: 'kevin.otieno@grandnairobi.co.ke',
+    phone: '+254 798 112 233',
+    role: 'WAITER',
+    department: 'Food & Beverage',
+    permissions: ['order.create', 'order.send', 'payment.cash', 'payment.mpesa'],
+    hourlyRate: 280,
+    baseSalary: 42000,
+    commissionRate: 0.04,
+    contractType: 'CONTRACT',
+    nationalId: '34192830',
+    kraPin: 'A006519283M',
+    nssfNumber: 'NSSF-819203',
+    nhifNumber: 'NHIF-492019',
+    leaveBalance: 21,
+    leaveTaken: 0,
+    attendanceStatus: 'ON_DUTY',
+    bankName: 'Equity Bank Kenya',
+    bankAccount: '029102938471',
+    mpesaDisbursementNumber: '+254 798 112 233'
+  },
+  {
+    id: 'emp-mixologist',
+    code: 'EMP-07',
+    name: 'Faith Mutua',
+    email: 'faith.mutua@grandnairobi.co.ke',
+    phone: '+254 712 998 877',
+    role: 'BARTENDER',
+    department: 'Food & Beverage',
+    permissions: ['order.create', 'order.send', 'payment.cash', 'payment.mpesa'],
+    hourlyRate: 420,
+    baseSalary: 65000,
+    commissionRate: 0.06,
+    contractType: 'PERMANENT',
+    nationalId: '30192847',
+    kraPin: 'A008192837X',
+    nssfNumber: 'NSSF-739102',
+    nhifNumber: 'NHIF-510293',
+    leaveBalance: 16,
+    leaveTaken: 5,
+    attendanceStatus: 'ON_DUTY',
+    bankName: 'Absa Bank Kenya',
+    bankAccount: '0948192837',
+    mpesaDisbursementNumber: '+254 712 998 877'
+  },
+  {
+    id: 'emp-hk',
+    code: 'EMP-08',
+    name: 'Mary Achieng',
+    email: 'mary.achieng@grandnairobi.co.ke',
+    phone: '+254 720 334 455',
+    role: 'HOUSEKEEPER',
+    department: 'Housekeeping',
+    permissions: ['hotel.rooms', 'hotel.inspection'],
+    hourlyRate: 320,
+    baseSalary: 50000,
+    commissionRate: 0.0,
+    contractType: 'PERMANENT',
+    nationalId: '27192830',
+    kraPin: 'A005918273T',
+    nssfNumber: 'NSSF-629102',
+    nhifNumber: 'NHIF-419283',
+    leaveBalance: 20,
+    leaveTaken: 1,
+    attendanceStatus: 'ON_DUTY',
+    bankName: 'Family Bank',
+    bankAccount: '05918293847',
+    mpesaDisbursementNumber: '+254 720 334 455'
+  }
+];
+
+const initialLeaveRequests: StaffLeaveRequest[] = [
+  {
+    id: 'lr-101',
+    employeeId: 'emp-chef',
+    employeeName: 'Joseph Mwangi',
+    employeeRole: 'Executive Sous Chef',
+    leaveType: 'ANNUAL',
+    startDate: '2026-09-28',
+    endDate: '2026-10-02',
+    daysCount: 5,
+    reason: 'Annual family leave; scheduled during planned low occupancy week',
+    handoverColleagueId: 'emp-mgr',
+    handoverColleagueName: 'Marcus Kiprop',
+    status: 'PENDING',
+    requestedAt: '2026-09-21T09:30:00Z'
+  },
+  {
+    id: 'lr-102',
+    employeeId: 'emp-frontdesk',
+    employeeName: 'Stella Njeri',
+    employeeRole: 'Receptionist',
+    leaveType: 'SICK',
+    startDate: '2026-09-18',
+    endDate: '2026-09-19',
+    daysCount: 2,
+    reason: 'Medical consultation & recovery with doctor note submitted',
+    handoverColleagueId: 'emp-alice',
+    handoverColleagueName: 'Alice Wambui',
+    status: 'APPROVED',
+    requestedAt: '2026-09-17T14:15:00Z',
+    reviewedBy: 'Marcus Kiprop',
+    reviewedAt: '2026-09-17T16:00:00Z',
+    reviewNotes: 'Doctor certificate verified'
+  },
+  {
+    id: 'lr-103',
+    employeeId: 'emp-waiter',
+    employeeName: 'Kevin Otieno',
+    employeeRole: 'Waiter',
+    leaveType: 'COMPASSIONATE',
+    startDate: '2026-09-12',
+    endDate: '2026-09-14',
+    daysCount: 3,
+    reason: 'Bereavement leave for immediate family',
+    status: 'APPROVED',
+    requestedAt: '2026-09-11T11:00:00Z',
+    reviewedBy: 'Marcus Kiprop',
+    reviewedAt: '2026-09-11T12:00:00Z',
+    reviewNotes: 'Approved per HR policy'
+  },
+  {
+    id: 'lr-104',
+    employeeId: 'emp-dave',
+    employeeName: 'David Omondi',
+    employeeRole: 'Bartender',
+    leaveType: 'ANNUAL',
+    startDate: '2026-10-05',
+    endDate: '2026-10-11',
+    daysCount: 7,
+    reason: 'Scheduled rest and annual vacation',
+    handoverColleagueId: 'emp-mixologist',
+    handoverColleagueName: 'Faith Mutua',
+    status: 'PENDING',
+    requestedAt: '2026-09-22T16:45:00Z'
+  }
+];
+
+const initialShiftSchedules: ShiftSchedule[] = [
+  {
+    id: 'sh-01',
+    employeeId: 'emp-dave',
+    employeeName: 'David Omondi',
+    role: 'Bartender',
+    department: 'Food & Beverage',
+    date: '2026-09-23',
+    dayOfWeek: 'Wednesday',
+    shiftType: 'AFTERNOON',
+    startTime: '15:00',
+    endTime: '23:30',
+    station: 'Main Bar Station A',
+    status: 'CLOCKED_IN',
+    clockInTime: '14:52',
+    notes: 'Opening beverage cellar handover completed'
+  },
+  {
+    id: 'sh-02',
+    employeeId: 'emp-mixologist',
+    employeeName: 'Faith Mutua',
+    role: 'Lead Bartender',
+    department: 'Food & Beverage',
+    date: '2026-09-23',
+    dayOfWeek: 'Wednesday',
+    shiftType: 'AFTERNOON',
+    startTime: '15:00',
+    endTime: '23:30',
+    station: 'VIP Lounge Cocktail Bar',
+    status: 'CLOCKED_IN',
+    clockInTime: '14:58',
+    notes: 'Cocktail prep and ice inventory verified'
+  },
+  {
+    id: 'sh-03',
+    employeeId: 'emp-waiter',
+    employeeName: 'Kevin Otieno',
+    role: 'Floor Waiter',
+    department: 'Food & Beverage',
+    date: '2026-09-23',
+    dayOfWeek: 'Wednesday',
+    shiftType: 'MORNING',
+    startTime: '07:00',
+    endTime: '15:30',
+    station: 'Garden Terrace Deck',
+    status: 'COMPLETED',
+    clockInTime: '06:55',
+    clockOutTime: '15:35',
+    hoursWorked: 8.5
+  },
+  {
+    id: 'sh-04',
+    employeeId: 'emp-alice',
+    employeeName: 'Alice Wambui',
+    role: 'Head Cashier',
+    department: 'Finance & Admin',
+    date: '2026-09-23',
+    dayOfWeek: 'Wednesday',
+    shiftType: 'MORNING',
+    startTime: '07:00',
+    endTime: '15:30',
+    station: 'Central Till Desk',
+    status: 'CLOCKED_IN',
+    clockInTime: '06:50'
+  },
+  {
+    id: 'sh-05',
+    employeeId: 'emp-frontdesk',
+    employeeName: 'Stella Njeri',
+    role: 'Receptionist',
+    department: 'Front Desk & Rooms',
+    date: '2026-09-23',
+    dayOfWeek: 'Wednesday',
+    shiftType: 'MORNING',
+    startTime: '07:00',
+    endTime: '15:30',
+    station: 'Hotel Reception PMS Desk',
+    status: 'CLOCKED_IN',
+    clockInTime: '07:02'
+  },
+  {
+    id: 'sh-06',
+    employeeId: 'emp-chef',
+    employeeName: 'Joseph Mwangi',
+    role: 'Executive Sous Chef',
+    department: 'Culinary / Kitchen',
+    date: '2026-09-23',
+    dayOfWeek: 'Wednesday',
+    shiftType: 'MORNING',
+    startTime: '06:30',
+    endTime: '15:00',
+    station: 'Hot Line & Kitchen Pass',
+    status: 'CLOCKED_IN',
+    clockInTime: '06:28'
+  },
+  {
+    id: 'sh-07',
+    employeeId: 'emp-hk',
+    employeeName: 'Mary Achieng',
+    role: 'Housekeeper',
+    department: 'Housekeeping',
+    date: '2026-09-23',
+    dayOfWeek: 'Wednesday',
+    shiftType: 'MORNING',
+    startTime: '07:00',
+    endTime: '15:30',
+    station: 'Floors 1-3 Guest Rooms',
+    status: 'COMPLETED',
+    clockInTime: '06:58',
+    clockOutTime: '15:30',
+    hoursWorked: 8.5
+  },
+  {
+    id: 'sh-08',
+    employeeId: 'emp-mgr',
+    employeeName: 'Marcus Kiprop',
+    role: 'General Manager',
+    department: 'General Management',
+    date: '2026-09-23',
+    dayOfWeek: 'Wednesday',
+    shiftType: 'DOUBLE',
+    startTime: '08:00',
+    endTime: '20:00',
+    station: 'Executive Duty Office',
+    status: 'CLOCKED_IN',
+    clockInTime: '07:45'
+  }
+];
+
+const initialSalaryAdvances: SalaryAdvance[] = [
+  {
+    id: 'adv-01',
+    employeeId: 'emp-waiter',
+    employeeName: 'Kevin Otieno',
+    amount: 8000,
+    reason: 'Emergency outpatient medical prescription',
+    requestedAt: '2026-09-10T10:00:00Z',
+    status: 'APPROVED',
+    payrollDeductionPeriod: 'September 2026',
+    approvedBy: 'Marcus Kiprop'
+  },
+  {
+    id: 'adv-02',
+    employeeId: 'emp-dave',
+    employeeName: 'David Omondi',
+    amount: 5000,
+    reason: 'High school term fees advance',
+    requestedAt: '2026-09-15T14:30:00Z',
+    status: 'APPROVED',
+    payrollDeductionPeriod: 'September 2026',
+    approvedBy: 'Marcus Kiprop'
+  },
+  {
+    id: 'adv-03',
+    employeeId: 'emp-hk',
+    employeeName: 'Mary Achieng',
+    amount: 3500,
+    reason: 'Home plumbing repair emergency',
+    requestedAt: '2026-09-21T08:15:00Z',
+    status: 'PENDING'
+  }
+];
+
+const initialPayrollRuns: PayrollRun[] = [
+  {
+    id: 'pyr-2026-08',
+    period: 'August 2026',
+    runDate: '2026-08-31T17:00:00Z',
+    status: 'DISBURSED',
+    totalGross: 587000,
+    totalAdditions: 74200,
+    totalDeductions: 132450,
+    totalNetPay: 454550,
+    employeeCount: 8,
+    approvedBy: 'Marcus Kiprop',
+    disbursedAt: '2026-08-31T18:15:00Z',
+    journalEntryId: 'je-pyr-aug26',
+    payslips: [
+      {
+        id: 'ps-aug-01',
+        payrollRunId: 'pyr-2026-08',
+        employeeId: 'emp-dave',
+        employeeName: 'David Omondi',
+        employeeCode: 'EMP-01',
+        role: 'Bartender',
+        department: 'Food & Beverage',
+        kraPin: 'A004819230Z',
+        basicPay: 55000,
+        shiftHoursWorked: 184,
+        overtimeHours: 12,
+        overtimePay: 6300,
+        tipShare: 8450,
+        bottleCommissions: 4200,
+        allowances: 4000,
+        grossPay: 77950,
+        payeTax: 12150,
+        nssfPension: 2160,
+        nhifInsurance: 1500,
+        housingLevy: 1169,
+        advancesDeducted: 0,
+        totalDeductions: 16979,
+        netPay: 60971,
+        disbursementMethod: 'MPESA_B2C',
+        disbursementStatus: 'DISBURSED',
+        paymentReference: 'B2C-MP-849102'
+      },
+      {
+        id: 'ps-aug-02',
+        payrollRunId: 'pyr-2026-08',
+        employeeId: 'emp-alice',
+        employeeName: 'Alice Wambui',
+        employeeCode: 'EMP-02',
+        role: 'Cashier',
+        department: 'Finance & Admin',
+        kraPin: 'A007419821W',
+        basicPay: 62000,
+        shiftHoursWorked: 180,
+        overtimeHours: 8,
+        overtimePay: 4560,
+        tipShare: 7200,
+        bottleCommissions: 1200,
+        allowances: 4000,
+        grossPay: 78960,
+        payeTax: 12450,
+        nssfPension: 2160,
+        nhifInsurance: 1500,
+        housingLevy: 1184,
+        advancesDeducted: 0,
+        totalDeductions: 17294,
+        netPay: 61666,
+        disbursementMethod: 'BANK_TRANSFER',
+        disbursementStatus: 'DISBURSED',
+        paymentReference: 'EFT-EQB-910294'
+      },
+      {
+        id: 'ps-aug-03',
+        payrollRunId: 'pyr-2026-08',
+        employeeId: 'emp-mgr',
+        employeeName: 'Marcus Kiprop',
+        employeeCode: 'EMP-03',
+        role: 'Manager',
+        department: 'General Management',
+        kraPin: 'A001298471P',
+        basicPay: 145000,
+        shiftHoursWorked: 190,
+        overtimeHours: 0,
+        overtimePay: 0,
+        tipShare: 0,
+        bottleCommissions: 6800,
+        allowances: 12000,
+        grossPay: 163800,
+        payeTax: 39540,
+        nssfPension: 2160,
+        nhifInsurance: 1700,
+        housingLevy: 2457,
+        advancesDeducted: 0,
+        totalDeductions: 45857,
+        netPay: 117943,
+        disbursementMethod: 'BANK_TRANSFER',
+        disbursementStatus: 'DISBURSED',
+        paymentReference: 'EFT-SCB-481920'
+      }
+    ]
+  },
+  {
+    id: 'pyr-2026-09',
+    period: 'September 2026',
+    runDate: '2026-09-23T12:00:00Z',
+    status: 'DRAFT',
+    totalGross: 598400,
+    totalAdditions: 78500,
+    totalDeductions: 147250,
+    totalNetPay: 451150,
+    employeeCount: 8,
+    payslips: [
+      {
+        id: 'ps-sep-01',
+        payrollRunId: 'pyr-2026-09',
+        employeeId: 'emp-dave',
+        employeeName: 'David Omondi',
+        employeeCode: 'EMP-01',
+        role: 'Bartender',
+        department: 'Food & Beverage',
+        kraPin: 'A004819230Z',
+        basicPay: 55000,
+        shiftHoursWorked: 176,
+        overtimeHours: 14,
+        overtimePay: 7350,
+        tipShare: 8900,
+        bottleCommissions: 4800,
+        allowances: 4000,
+        grossPay: 80050,
+        payeTax: 12850,
+        nssfPension: 2160,
+        nhifInsurance: 1500,
+        housingLevy: 1201,
+        advancesDeducted: 5000,
+        totalDeductions: 22711,
+        netPay: 57339,
+        disbursementMethod: 'MPESA_B2C',
+        disbursementStatus: 'PENDING'
+      },
+      {
+        id: 'ps-sep-02',
+        payrollRunId: 'pyr-2026-09',
+        employeeId: 'emp-alice',
+        employeeName: 'Alice Wambui',
+        employeeCode: 'EMP-02',
+        role: 'Cashier',
+        department: 'Finance & Admin',
+        kraPin: 'A007419821W',
+        basicPay: 62000,
+        shiftHoursWorked: 180,
+        overtimeHours: 6,
+        overtimePay: 3420,
+        tipShare: 7800,
+        bottleCommissions: 1400,
+        allowances: 4000,
+        grossPay: 78620,
+        payeTax: 12380,
+        nssfPension: 2160,
+        nhifInsurance: 1500,
+        housingLevy: 1179,
+        advancesDeducted: 0,
+        totalDeductions: 17219,
+        netPay: 61401,
+        disbursementMethod: 'BANK_TRANSFER',
+        disbursementStatus: 'PENDING'
+      },
+      {
+        id: 'ps-sep-03',
+        payrollRunId: 'pyr-2026-09',
+        employeeId: 'emp-mgr',
+        employeeName: 'Marcus Kiprop',
+        employeeCode: 'EMP-03',
+        role: 'Manager',
+        department: 'General Management',
+        kraPin: 'A001298471P',
+        basicPay: 145000,
+        shiftHoursWorked: 188,
+        overtimeHours: 0,
+        overtimePay: 0,
+        tipShare: 0,
+        bottleCommissions: 7200,
+        allowances: 12000,
+        grossPay: 164200,
+        payeTax: 39680,
+        nssfPension: 2160,
+        nhifInsurance: 1700,
+        housingLevy: 2463,
+        advancesDeducted: 0,
+        totalDeductions: 46003,
+        netPay: 118197,
+        disbursementMethod: 'BANK_TRANSFER',
+        disbursementStatus: 'PENDING'
+      },
+      {
+        id: 'ps-sep-04',
+        payrollRunId: 'pyr-2026-09',
+        employeeId: 'emp-frontdesk',
+        employeeName: 'Stella Njeri',
+        employeeCode: 'EMP-04',
+        role: 'Receptionist',
+        department: 'Front Desk & Rooms',
+        kraPin: 'A009182736K',
+        basicPay: 58000,
+        shiftHoursWorked: 178,
+        overtimeHours: 8,
+        overtimePay: 4800,
+        tipShare: 5400,
+        bottleCommissions: 1800,
+        allowances: 4000,
+        grossPay: 74000,
+        payeTax: 10980,
+        nssfPension: 2160,
+        nhifInsurance: 1400,
+        housingLevy: 1110,
+        advancesDeducted: 0,
+        totalDeductions: 15650,
+        netPay: 58350,
+        disbursementMethod: 'MPESA_B2C',
+        disbursementStatus: 'PENDING'
+      },
+      {
+        id: 'ps-sep-05',
+        payrollRunId: 'pyr-2026-09',
+        employeeId: 'emp-chef',
+        employeeName: 'Joseph Mwangi',
+        employeeCode: 'EMP-05',
+        role: 'Chef',
+        department: 'Culinary / Kitchen',
+        kraPin: 'A003819201L',
+        basicPay: 110000,
+        shiftHoursWorked: 185,
+        overtimeHours: 16,
+        overtimePay: 13200,
+        tipShare: 6500,
+        bottleCommissions: 0,
+        allowances: 8000,
+        grossPay: 137700,
+        payeTax: 30450,
+        nssfPension: 2160,
+        nhifInsurance: 1700,
+        housingLevy: 2066,
+        advancesDeducted: 0,
+        totalDeductions: 36376,
+        netPay: 101324,
+        disbursementMethod: 'BANK_TRANSFER',
+        disbursementStatus: 'PENDING'
+      },
+      {
+        id: 'ps-sep-06',
+        payrollRunId: 'pyr-2026-09',
+        employeeId: 'emp-waiter',
+        employeeName: 'Kevin Otieno',
+        employeeCode: 'EMP-06',
+        role: 'Waiter',
+        department: 'Food & Beverage',
+        kraPin: 'A006519283M',
+        basicPay: 42000,
+        shiftHoursWorked: 182,
+        overtimeHours: 15,
+        overtimePay: 6300,
+        tipShare: 9200,
+        bottleCommissions: 3600,
+        allowances: 3500,
+        grossPay: 64600,
+        payeTax: 8120,
+        nssfPension: 2160,
+        nhifInsurance: 1300,
+        housingLevy: 969,
+        advancesDeducted: 8000,
+        totalDeductions: 20549,
+        netPay: 44051,
+        disbursementMethod: 'MPESA_B2C',
+        disbursementStatus: 'PENDING'
+      },
+      {
+        id: 'ps-sep-07',
+        payrollRunId: 'pyr-2026-09',
+        employeeId: 'emp-mixologist',
+        employeeName: 'Faith Mutua',
+        employeeCode: 'EMP-07',
+        role: 'Bartender',
+        department: 'Food & Beverage',
+        kraPin: 'A008192837X',
+        basicPay: 65000,
+        shiftHoursWorked: 180,
+        overtimeHours: 12,
+        overtimePay: 7560,
+        tipShare: 9800,
+        bottleCommissions: 5800,
+        allowances: 4000,
+        grossPay: 92160,
+        payeTax: 16480,
+        nssfPension: 2160,
+        nhifInsurance: 1600,
+        housingLevy: 1382,
+        advancesDeducted: 0,
+        totalDeductions: 21622,
+        netPay: 70538,
+        disbursementMethod: 'MPESA_B2C',
+        disbursementStatus: 'PENDING'
+      },
+      {
+        id: 'ps-sep-08',
+        payrollRunId: 'pyr-2026-09',
+        employeeId: 'emp-hk',
+        employeeName: 'Mary Achieng',
+        employeeCode: 'EMP-08',
+        role: 'Housekeeper',
+        department: 'Housekeeping',
+        kraPin: 'A005918273T',
+        basicPay: 50000,
+        shiftHoursWorked: 175,
+        overtimeHours: 8,
+        overtimePay: 3840,
+        tipShare: 4200,
+        bottleCommissions: 0,
+        allowances: 3500,
+        grossPay: 61540,
+        payeTax: 7240,
+        nssfPension: 2160,
+        nhifInsurance: 1300,
+        housingLevy: 923,
+        advancesDeducted: 0,
+        totalDeductions: 11623,
+        netPay: 49917,
+        disbursementMethod: 'MPESA_B2C',
+        disbursementStatus: 'PENDING'
+      }
+    ]
   }
 ];
 
@@ -1051,8 +1785,12 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [currentProperty] = useState<Property>(initialProperty);
   const [outlets] = useState<Outlet[]>(initialOutlets);
   const [currentOutlet, setCurrentOutlet] = useState<Outlet>(initialOutlets[0]);
-  const [employees] = useState<Employee[]>(initialEmployees);
+  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [currentUser, setCurrentUser] = useState<Employee>(initialEmployees[0]);
+  const [leaveRequests, setLeaveRequests] = useState<StaffLeaveRequest[]>(initialLeaveRequests);
+  const [shiftSchedules, setShiftSchedules] = useState<ShiftSchedule[]>(initialShiftSchedules);
+  const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>(initialPayrollRuns);
+  const [salaryAdvances, setSalaryAdvances] = useState<SalaryAdvance[]>(initialSalaryAdvances);
   const [terminals] = useState<Terminal[]>([
     {
       id: 'term-01',
@@ -2106,6 +2844,331 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
+  // Staff & HR Management
+  const addEmployee = (empData: Omit<Employee, 'id'>) => {
+    const newEmp: Employee = {
+      ...empData,
+      id: `emp-${Date.now()}`
+    };
+    setEmployees(prev => [...prev, newEmp]);
+    showToast(`Staff profile created for ${newEmp.name} (${newEmp.role})`, 'success');
+  };
+
+  const updateEmployee = (id: string, updates: Partial<Employee>) => {
+    setEmployees(prev => prev.map(e => (e.id === id ? { ...e, ...updates } : e)));
+    showToast(`Staff profile updated`, 'success');
+  };
+
+  const submitLeaveRequest = (req: Omit<StaffLeaveRequest, 'id' | 'requestedAt' | 'status'>) => {
+    const newReq: StaffLeaveRequest = {
+      ...req,
+      id: `lr-${Date.now()}`,
+      requestedAt: new Date().toISOString(),
+      status: 'PENDING'
+    };
+    setLeaveRequests(prev => [newReq, ...prev]);
+    showToast(`Leave application submitted for ${newReq.employeeName} (${newReq.daysCount} days)`, 'success');
+  };
+
+  const approveLeaveRequest = (requestId: string, reviewNotes?: string) => {
+    const req = leaveRequests.find(r => r.id === requestId);
+    if (!req) return;
+
+    setLeaveRequests(prev =>
+      prev.map(r =>
+        r.id === requestId
+          ? {
+              ...r,
+              status: 'APPROVED' as const,
+              reviewedBy: currentUser.name,
+              reviewedAt: new Date().toISOString(),
+              reviewNotes: reviewNotes || 'Approved by Manager'
+            }
+          : r
+      )
+    );
+
+    // Deduct leave balance from employee
+    setEmployees(prev =>
+      prev.map(e => {
+        if (e.id === req.employeeId) {
+          const newBal = Math.max(0, e.leaveBalance - req.daysCount);
+          const newTaken = e.leaveTaken + req.daysCount;
+          return { ...e, leaveBalance: newBal, leaveTaken: newTaken };
+        }
+        return e;
+      })
+    );
+
+    showToast(`Leave request #${requestId} approved for ${req.employeeName}. Days deducted: ${req.daysCount}`, 'success');
+  };
+
+  const rejectLeaveRequest = (requestId: string, reason: string) => {
+    const req = leaveRequests.find(r => r.id === requestId);
+    if (!req) return;
+
+    setLeaveRequests(prev =>
+      prev.map(r =>
+        r.id === requestId
+          ? {
+              ...r,
+              status: 'REJECTED' as const,
+              reviewedBy: currentUser.name,
+              reviewedAt: new Date().toISOString(),
+              reviewNotes: reason || 'Application declined'
+            }
+          : r
+      )
+    );
+
+    showToast(`Leave request for ${req.employeeName} rejected`, 'info');
+  };
+
+  const clockInShift = (shiftId: string) => {
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setShiftSchedules(prev =>
+      prev.map(s =>
+        s.id === shiftId
+          ? { ...s, status: 'CLOCKED_IN' as const, clockInTime: nowStr }
+          : s
+      )
+    );
+    const targetShift = shiftSchedules.find(s => s.id === shiftId);
+    if (targetShift) {
+      setEmployees(prev =>
+        prev.map(e => (e.id === targetShift.employeeId ? { ...e, attendanceStatus: 'ON_DUTY' } : e))
+      );
+      showToast(`${targetShift.employeeName} clocked in at ${targetShift.station} [${nowStr}]`, 'success');
+    }
+  };
+
+  const clockOutShift = (shiftId: string) => {
+    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const targetShift = shiftSchedules.find(s => s.id === shiftId);
+    setShiftSchedules(prev =>
+      prev.map(s =>
+        s.id === shiftId
+          ? { ...s, status: 'COMPLETED' as const, clockOutTime: nowStr, hoursWorked: s.hoursWorked || 8.5 }
+          : s
+      )
+    );
+    if (targetShift) {
+      setEmployees(prev =>
+        prev.map(e => (e.id === targetShift.employeeId ? { ...e, attendanceStatus: 'OFF_DUTY' } : e))
+      );
+      showToast(`${targetShift.employeeName} clocked out. 8.5 hours logged to timesheet.`, 'info');
+    }
+  };
+
+  const createShiftSchedule = (scheduleData: Omit<ShiftSchedule, 'id'>) => {
+    const newShift: ShiftSchedule = {
+      ...scheduleData,
+      id: `sh-${Date.now()}`
+    };
+    setShiftSchedules(prev => [...prev, newShift]);
+    showToast(`Shift scheduled for ${newShift.employeeName} on ${newShift.date}`, 'success');
+  };
+
+  const requestSalaryAdvance = (employeeId: string, amount: number, reason: string) => {
+    const emp = employees.find(e => e.id === employeeId);
+    if (!emp) return;
+    const newAdv: SalaryAdvance = {
+      id: `adv-${Date.now()}`,
+      employeeId,
+      employeeName: emp.name,
+      amount,
+      reason,
+      requestedAt: new Date().toISOString(),
+      status: 'PENDING'
+    };
+    setSalaryAdvances(prev => [newAdv, ...prev]);
+    showToast(`Salary advance request of KES ${amount.toLocaleString()} submitted for ${emp.name}`, 'info');
+  };
+
+  const approveSalaryAdvance = (advanceId: string) => {
+    const adv = salaryAdvances.find(a => a.id === advanceId);
+    if (!adv) return;
+    setSalaryAdvances(prev =>
+      prev.map(a =>
+        a.id === advanceId
+          ? { ...a, status: 'APPROVED' as const, approvedBy: currentUser.name, payrollDeductionPeriod: 'September 2026' }
+          : a
+      )
+    );
+    showToast(`Salary advance of KES ${adv.amount.toLocaleString()} approved for ${adv.employeeName}. Scheduled for payroll deduction.`, 'success');
+  };
+
+  const generatePayrollRun = (period: string) => {
+    const generatedPayslips: EmployeePayslip[] = employees.map(emp => {
+      const basicPay = emp.baseSalary;
+      const shiftHoursWorked = 180;
+      const overtimeHours = emp.role === 'CHEF' ? 16 : emp.role === 'BARTENDER' ? 12 : emp.role === 'WAITER' ? 14 : 6;
+      const overtimePay = Math.round(overtimeHours * (emp.hourlyRate * 1.5));
+      const tipShare = emp.role === 'BARTENDER' ? 9500 : emp.role === 'WAITER' ? 8800 : emp.role === 'CHEF' ? 6500 : emp.role === 'CASHIER' ? 7500 : 4000;
+      const bottleCommissions = Math.round(emp.commissionRate * 85000);
+      const allowances = emp.role === 'MANAGER' ? 12000 : emp.role === 'CHEF' ? 8000 : 4000;
+      const grossPay = basicPay + overtimePay + tipShare + bottleCommissions + allowances;
+
+      // Statutory deductions
+      const nssfPension = 2160;
+      const nhifInsurance = grossPay > 100000 ? 1700 : grossPay > 50000 ? 1500 : 1300;
+      const housingLevy = Math.round(grossPay * 0.015);
+      
+      const taxable = grossPay - nssfPension;
+      let paye = 0;
+      if (taxable > 24000) {
+        paye = Math.round((taxable - 24000) * 0.25);
+      }
+      if (taxable > 32333) {
+        paye += Math.round((taxable - 32333) * 0.05);
+      }
+      paye = Math.max(0, paye - 2400); // Personal relief
+
+      const empAdvance = salaryAdvances.find(a => a.employeeId === emp.id && a.status === 'APPROVED');
+      const advancesDeducted = empAdvance ? empAdvance.amount : 0;
+
+      const totalDeductions = nssfPension + nhifInsurance + housingLevy + paye + advancesDeducted;
+      const netPay = grossPay - totalDeductions;
+
+      return {
+        id: `ps-${period.toLowerCase().replace(/\s+/g, '-')}-${emp.code.toLowerCase()}`,
+        payrollRunId: `pyr-${period.toLowerCase().replace(/\s+/g, '-')}`,
+        employeeId: emp.id,
+        employeeName: emp.name,
+        employeeCode: emp.code,
+        role: emp.role,
+        department: emp.department,
+        kraPin: emp.kraPin || 'A000000000X',
+        basicPay,
+        shiftHoursWorked,
+        overtimeHours,
+        overtimePay,
+        tipShare,
+        bottleCommissions,
+        allowances,
+        grossPay,
+        payeTax: paye,
+        nssfPension,
+        nhifInsurance,
+        housingLevy,
+        advancesDeducted,
+        totalDeductions,
+        netPay,
+        disbursementMethod: emp.mpesaDisbursementNumber ? 'MPESA_B2C' : 'BANK_TRANSFER',
+        disbursementStatus: 'PENDING' as const
+      };
+    });
+
+    const totalGross = generatedPayslips.reduce((s, p) => s + p.grossPay, 0);
+    const totalAdditions = generatedPayslips.reduce((s, p) => s + p.overtimePay + p.tipShare + p.bottleCommissions + p.allowances, 0);
+    const totalDeductions = generatedPayslips.reduce((s, p) => s + p.totalDeductions, 0);
+    const totalNetPay = generatedPayslips.reduce((s, p) => s + p.netPay, 0);
+
+    const newRun: PayrollRun = {
+      id: `pyr-${period.toLowerCase().replace(/\s+/g, '-')}`,
+      period,
+      runDate: new Date().toISOString(),
+      status: 'DRAFT',
+      totalGross,
+      totalAdditions,
+      totalDeductions,
+      totalNetPay,
+      employeeCount: generatedPayslips.length,
+      payslips: generatedPayslips
+    };
+
+    setPayrollRuns(prev => [newRun, ...prev.filter(r => r.period !== period)]);
+    showToast(`Payroll run generated for ${period}: ${generatedPayslips.length} payslips computed`, 'success');
+  };
+
+  const approvePayrollRun = (payrollId: string) => {
+    setPayrollRuns(prev =>
+      prev.map(r =>
+        r.id === payrollId
+          ? { ...r, status: 'APPROVED' as const, approvedBy: currentUser.name }
+          : r
+      )
+    );
+    showToast(`Payroll #${payrollId} approved by ${currentUser.name}. Ready for disbursement!`, 'success');
+  };
+
+  const disbursePayrollRun = (payrollId: string) => {
+    const run = payrollRuns.find(r => r.id === payrollId);
+    if (!run) return;
+
+    const updatedPayslips: EmployeePayslip[] = run.payslips.map(ps => ({
+      ...ps,
+      disbursementStatus: 'DISBURSED' as const,
+      paymentReference: `B2C-PYR-${Math.floor(100000 + Math.random() * 900000)}`
+    }));
+
+    const journalId = `je-pyr-${Date.now()}`;
+    const newJournalEntry: JournalEntry = {
+      id: journalId,
+      entryNumber: `JE-PYR-${run.period.replace(/\s+/g, '').toUpperCase()}`,
+      propertyId: currentProperty.id,
+      occurredAt: new Date().toISOString(),
+      postedAt: new Date().toISOString(),
+      sourceType: 'PAYMENT',
+      sourceId: run.id,
+      memo: `Payroll disbursement for ${run.period} (${run.employeeCount} staff) via M-PESA B2C & Bank EFT`,
+      totalDebit: run.totalGross,
+      totalCredit: run.totalGross,
+      balanced: true,
+      lines: [
+        {
+          id: `jl-pyr-1`,
+          accountId: 'acc-5080',
+          accountCode: '5080',
+          accountName: 'Salaries, Wages & Staff Welfare Expense',
+          debit: run.totalGross,
+          credit: 0,
+          description: `Gross Wages Expense - ${run.period}`
+        },
+        {
+          id: `jl-pyr-2`,
+          accountId: 'acc-2120',
+          accountCode: '2120',
+          accountName: 'Payroll Statutory Withholdings (PAYE, NSSF, NHIF, Housing)',
+          debit: 0,
+          credit: run.totalDeductions,
+          description: `Statutory deductions withholding - ${run.period}`
+        },
+        {
+          id: `jl-pyr-3`,
+          accountId: 'acc-1020',
+          accountCode: '1020',
+          accountName: 'M-PESA Clearing Settlement',
+          debit: 0,
+          credit: run.totalNetPay,
+          description: `Net Pay B2C disbursement - ${run.period}`
+        }
+      ]
+    };
+
+    setJournalEntries(prev => [newJournalEntry, ...prev]);
+
+    setSalaryAdvances(prev =>
+      prev.map(a => (a.status === 'APPROVED' ? { ...a, status: 'RECOVERED' as const } : a))
+    );
+
+    setPayrollRuns(prev =>
+      prev.map(r =>
+        r.id === payrollId
+          ? {
+              ...r,
+              status: 'DISBURSED' as const,
+              disbursedAt: new Date().toISOString(),
+              journalEntryId: journalId,
+              payslips: updatedPayslips
+            }
+          : r
+      )
+    );
+
+    showToast(`KES ${run.totalNetPay.toLocaleString()} disbursed to ${run.employeeCount} staff members via M-PESA B2C & GL updated!`, 'success');
+  };
+
   // Stock Actions (Transfers, Waste, Adjustments)
   const transferStock = (
     stockItemId: string,
@@ -2768,6 +3831,23 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         currentUser,
         setCurrentUser,
         employees,
+        addEmployee,
+        updateEmployee,
+        leaveRequests,
+        submitLeaveRequest,
+        approveLeaveRequest,
+        rejectLeaveRequest,
+        shiftSchedules,
+        clockInShift,
+        clockOutShift,
+        createShiftSchedule,
+        payrollRuns,
+        generatePayrollRun,
+        approvePayrollRun,
+        disbursePayrollRun,
+        salaryAdvances,
+        requestSalaryAdvance,
+        approveSalaryAdvance,
         stockItems,
         stockLocations,
         stockMovements,

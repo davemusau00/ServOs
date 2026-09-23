@@ -9,6 +9,7 @@ import {
   Receipt, 
   ShieldAlert, 
   Coins, 
+  Users,
   ChevronLeft, 
   ChevronRight, 
   PanelLeftClose, 
@@ -54,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'procurement', label: 'Procurement & AP', icon: FileSpreadsheet, desc: 'POs, GRN & 3-way match' },
     { id: 'accounting', label: 'Accounting & eTIMS', icon: Receipt, desc: 'Double-entry & KRA fiscal' },
     { id: 'control', label: 'Control & Audit', icon: ShieldAlert, desc: 'Anomalies & approvals' },
-    { id: 'staff', label: 'Staff & Cash', icon: Coins, desc: 'Tills, cash in/out & tips' }
+    { id: 'staff', label: 'Staff & HR Hub', icon: Users, desc: 'Payroll, leave, shifts & till' }
   ];
 
   return (

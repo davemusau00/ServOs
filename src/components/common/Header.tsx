@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
   Receipt,
   Coins,
+  Users,
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen
@@ -66,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'procurement', label: 'Procurement & AP', icon: FileSpreadsheet, desc: 'POs, GRN & 3-way match' },
     { id: 'accounting', label: 'Accounting & eTIMS', icon: Receipt, desc: 'Double-entry & KRA fiscal' },
     { id: 'control', label: 'Control & Audit', icon: ShieldAlert, desc: 'Anomalies & approvals' },
-    { id: 'staff', label: 'Staff & Cash', icon: Coins, desc: 'Tills, cash in/out & tips' }
+    { id: 'staff', label: 'Staff & HR Hub', icon: Users, desc: 'Payroll, leave, shifts & till' }
   ];
 
   const handleSelectTab = (tabId: string) => {

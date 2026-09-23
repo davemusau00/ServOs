@@ -452,18 +452,147 @@ export interface PurchaseOrder {
   supplierInvoiceNumber?: string;
 }
 
-// Staff & HR
+// Staff, HR, Roster, Leave & Payroll
+export type EmployeeRole = 
+  | 'WAITER' 
+  | 'BARTENDER' 
+  | 'CHEF' 
+  | 'CASHIER' 
+  | 'RECEPTIONIST' 
+  | 'HOUSEKEEPER' 
+  | 'MANAGER' 
+  | 'FINANCE';
+
+export type ContractType = 'PERMANENT' | 'PROBATION' | 'CASUAL' | 'CONTRACT';
+export type AttendanceStatus = 'ON_DUTY' | 'ON_BREAK' | 'OFF_DUTY' | 'ON_LEAVE';
+
 export interface Employee {
   id: string;
   code: string;
   name: string;
   email: string;
   phone: string;
-  role: 'WAITER' | 'BARTENDER' | 'CHEF' | 'CASHIER' | 'RECEPTIONIST' | 'HOUSEKEEPER' | 'MANAGER' | 'FINANCE';
+  role: EmployeeRole;
+  department: 'Food & Beverage' | 'Culinary / Kitchen' | 'Front Desk & Rooms' | 'Housekeeping' | 'Finance & Admin' | 'General Management';
   permissions: string[];
   activeShiftId?: string;
   hourlyRate: number;
+  baseSalary: number; // Monthly base in KES
   commissionRate: number; // e.g. 0.05 (5%)
+  contractType: ContractType;
+  nationalId?: string;
+  kraPin?: string;
+  nssfNumber?: string;
+  nhifNumber?: string;
+  leaveBalance: number; // Entitlement days remaining
+  leaveTaken: number;
+  attendanceStatus?: AttendanceStatus;
+  bankName?: string;
+  bankAccount?: string;
+  mpesaDisbursementNumber?: string;
+}
+
+export type LeaveType = 'ANNUAL' | 'SICK' | 'MATERNITY' | 'PATERNITY' | 'COMPASSIONATE' | 'UNPAID';
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface StaffLeaveRequest {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeRole: string;
+  leaveType: LeaveType;
+  startDate: string;
+  endDate: string;
+  daysCount: number;
+  reason: string;
+  handoverColleagueId?: string;
+  handoverColleagueName?: string;
+  status: LeaveStatus;
+  requestedAt: string;
+  reviewedBy?: string;
+  reviewNotes?: string;
+  reviewedAt?: string;
+}
+
+export type ShiftType = 'MORNING' | 'AFTERNOON' | 'NIGHT' | 'DOUBLE' | 'OFF';
+export type ShiftStatus = 'SCHEDULED' | 'CLOCKED_IN' | 'COMPLETED' | 'ABSENT' | 'ON_LEAVE';
+
+export interface ShiftSchedule {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  role: string;
+  department: string;
+  date: string; // YYYY-MM-DD
+  dayOfWeek: string; // 'Monday', 'Tuesday', etc.
+  shiftType: ShiftType;
+  startTime: string; // e.g. '07:00'
+  endTime: string; // e.g. '15:30'
+  station: string; // e.g. 'Main Bar Station A', 'Hot Line Grill', 'Terrace Tables'
+  status: ShiftStatus;
+  clockInTime?: string;
+  clockOutTime?: string;
+  hoursWorked?: number;
+  notes?: string;
+}
+
+export interface EmployeePayslip {
+  id: string;
+  payrollRunId: string;
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  role: string;
+  department: string;
+  kraPin: string;
+  basicPay: number;
+  shiftHoursWorked: number;
+  overtimeHours: number;
+  overtimePay: number;
+  tipShare: number;
+  bottleCommissions: number;
+  allowances: number; // Housing/Transport/Meal allowance
+  grossPay: number;
+  payeTax: number;
+  nssfPension: number;
+  nhifInsurance: number;
+  housingLevy: number;
+  advancesDeducted: number;
+  totalDeductions: number;
+  netPay: number;
+  disbursementMethod: 'MPESA_B2C' | 'BANK_TRANSFER' | 'CASH';
+  disbursementStatus: 'PENDING' | 'DISBURSED';
+  paymentReference?: string;
+}
+
+export type PayrollRunStatus = 'DRAFT' | 'APPROVED' | 'DISBURSED';
+
+export interface PayrollRun {
+  id: string;
+  period: string; // e.g. "September 2026"
+  runDate: string;
+  status: PayrollRunStatus;
+  totalGross: number;
+  totalAdditions: number; // Tips + Overtime + Commissions + Allowances
+  totalDeductions: number; // PAYE + NSSF + NHIF + Housing Levy + Advances
+  totalNetPay: number;
+  employeeCount: number;
+  payslips: EmployeePayslip[];
+  journalEntryId?: string;
+  approvedBy?: string;
+  disbursedAt?: string;
+}
+
+export interface SalaryAdvance {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  amount: number;
+  reason: string;
+  requestedAt: string;
+  status: 'PENDING' | 'APPROVED' | 'RECOVERED' | 'REJECTED';
+  payrollDeductionPeriod?: string;
+  approvedBy?: string;
 }
 
 // Control Engine & Anomaly Detection
