@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useServOS } from '../../context/ServOSContext';
 import { StockItem, StockMovement } from '../../types/servos';
 import { calculatePredictiveInventory, PredictiveStockAnalysis } from '../../utils/predictiveStock';
+import { StockRequisitionModal } from './StockRequisitionModal';
 import { 
   Package, 
   ArrowRightLeft, 
@@ -43,6 +44,7 @@ export const InventoryView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ITEMS' | 'PREDICTIVE' | 'AVT' | 'MOVEMENTS'>('ITEMS');
 
   // Modals
+  const [isRequisitionOpen, setIsRequisitionOpen] = useState<boolean>(false);
   const [isTransferOpen, setIsTransferOpen] = useState<boolean>(false);
   const [transferItemId, setTransferItemId] = useState<string>('');
   const [transferFromLoc, setTransferFromLoc] = useState<string>('loc-warehouse');
@@ -174,6 +176,14 @@ export const InventoryView: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => setIsRequisitionOpen(true)}
+              className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+            >
+              <Boxes className="w-3.5 h-3.5" />
+              <span>Store Requisition</span>
+            </button>
+
             <button
               onClick={() => {
                 if (stockItems.length > 0) {
@@ -976,6 +986,12 @@ export const InventoryView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* STOCK REQUISITION MODAL */}
+      <StockRequisitionModal
+        isOpen={isRequisitionOpen}
+        onClose={() => setIsRequisitionOpen(false)}
+      />
     </div>
   );
 };

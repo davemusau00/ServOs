@@ -5,6 +5,8 @@ import { ThermalReceiptModal } from './ThermalReceiptModal';
 import { MixedTenderModal } from './MixedTenderModal';
 import { RefundModal } from './RefundModal';
 import { TableMergeModal } from './TableMergeModal';
+import { FloorPlanDesignerView } from './FloorPlanDesignerView';
+import { QROrderingGuestView } from './QROrderingGuestView';
 import { 
   Wine, 
   Beer, 
@@ -32,6 +34,7 @@ import {
   Users,
   ChevronRight,
   Receipt,
+  LayoutGrid,
   Utensils,
   GitMerge,
   RotateCcw,
@@ -97,6 +100,10 @@ export const POSView: React.FC = () => {
   const [isCompModalOpen, setIsCompModalOpen] = useState<boolean>(false);
   const [compTargetItemId, setCompTargetItemId] = useState<string>('');
   const [compReason, setCompReason] = useState<string>('VIP House Hospitality');
+
+  // Floorplan Designer Studio Modal
+  const [isFloorDesignerOpen, setIsFloorDesignerOpen] = useState<boolean>(false);
+  const [isQrOrderingOpen, setIsQrOrderingOpen] = useState<boolean>(false);
 
   // Table Transfer Modal
   const [isTransferModalOpen, setIsTransferModalOpen] = useState<boolean>(false);
@@ -336,6 +343,22 @@ export const POSView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsQrOrderingOpen(true)}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded border border-slate-700 transition-colors whitespace-nowrap shadow-xs flex items-center gap-1.5"
+            >
+              <QrCode className="w-3.5 h-3.5 text-amber-400" />
+              <span>Guest QR</span>
+            </button>
+
+            <button
+              onClick={() => setIsFloorDesignerOpen(true)}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold rounded border border-slate-700 transition-colors whitespace-nowrap shadow-xs flex items-center gap-1.5"
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
+              <span>Floor Studio</span>
+            </button>
+
             <button
               onClick={() => createQuickBarTab(`Walk-in Tab #${Math.floor(100 + Math.random() * 900)}`)}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold rounded border border-slate-700 transition-colors whitespace-nowrap shadow-xs"
@@ -1621,6 +1644,16 @@ export const POSView: React.FC = () => {
         onClose={() => setIsRefundModalOpen(false)}
         order={activeOrder}
       />
+
+      {/* FLOORPLAN DESIGNER STUDIO MODAL */}
+      {isFloorDesignerOpen && (
+        <FloorPlanDesignerView onClose={() => setIsFloorDesignerOpen(false)} />
+      )}
+
+      {/* GUEST QR SELF ORDERING MODAL */}
+      {isQrOrderingOpen && (
+        <QROrderingGuestView onClose={() => setIsQrOrderingOpen(false)} />
+      )}
 
       {/* TABLE / CHECK MERGE MODAL */}
       <TableMergeModal

@@ -20,6 +20,8 @@ import {
   PanelLeftOpen, 
   Printer, 
   Building2,
+  BarChart3,
+  FlaskConical,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
@@ -60,6 +62,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'host', label: 'Host & Reservations', icon: UserCheck, desc: 'Waitlist, reservations & seating' },
     { id: 'kds', label: 'KDS Pass', icon: Flame, desc: 'Kitchen & bar prep stations' },
     { id: 'hotel', label: 'Hotel PMS', icon: Bed, desc: 'Tape chart, rooms & housekeeping' },
+    { id: 'reports', label: 'Reports Centre', icon: BarChart3, desc: 'Sales, Covers, SLA & Engineering' },
+    { id: 'tender', label: 'Tender Settlement', icon: Receipt, desc: 'Shift drawer & payment audit' },
+    { id: 'batch', label: 'Batch Prep Studio', icon: FlaskConical, desc: 'Sub-recipes, yield & prep runs' },
     { id: 'catalog', label: 'Catalog Studio', icon: SlidersHorizontal, desc: 'Portions, yields & price books' },
     { id: 'crm', label: 'Guest 360 & Loyalty', icon: Users, desc: 'Customer profiles & rewards' },
     { id: 'events', label: 'Events & Nightlife', icon: Calendar, desc: 'Door scanner & promoters' },

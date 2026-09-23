@@ -17,6 +17,9 @@ import { AccountingView } from './components/accounting/AccountingView';
 import { ControlEngineView } from './components/control/ControlEngineView';
 import { StaffCashView } from './components/staff/StaffCashView';
 import { SettingsCenterView } from './components/settings/SettingsCenterView';
+import { ReportsCenterView } from './components/common/ReportsCenterView';
+import { TenderReconciliationView } from './components/accounting/TenderReconciliationView';
+import { BatchProductionView } from './components/catalog/BatchProductionView';
 import { EdgeHardwareModal } from './components/edge/EdgeHardwareModal';
 import { ToastContainer } from './components/common/ToastContainer';
 import { WifiOff, Database, RefreshCw, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
@@ -116,6 +119,12 @@ const MainApp: React.FC = () => {
         return <KDSView />;
       case 'hotel':
         return <HotelPMSView />;
+      case 'reports':
+        return <ReportsCenterView />;
+      case 'tender':
+        return <TenderReconciliationView />;
+      case 'batch':
+        return <BatchProductionView />;
       case 'catalog':
         return <CatalogStudioView />;
       case 'crm':
