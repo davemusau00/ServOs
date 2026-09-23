@@ -93,6 +93,15 @@ export const POSView: React.FC = () => {
   const [isSplitModalOpen, setIsSplitModalOpen] = useState<boolean>(false);
   const [splitCount, setSplitCount] = useState<number>(2);
 
+  // Void Order Modal state
+  const [isVoidModalOpen, setIsVoidModalOpen] = useState<boolean>(false);
+  const [voidReason, setVoidReason] = useState<string>('Guest request / cancelled before service');
+
+  // Order Discount Modal state
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState<boolean>(false);
+  const [discountPercent, setDiscountPercent] = useState<number>(10);
+  const [discountReason, setDiscountReason] = useState<string>('Manager Courtesy Discount');
+
   // Thermal Receipt Modal state
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
   const [receiptModalOrder, setReceiptModalOrder] = useState<Order | null>(null);
@@ -508,9 +517,8 @@ export const POSView: React.FC = () => {
               {/* Void Order */}
               <button
                 onClick={() => {
-                  if (confirm('Void this active order? Manager authorization will be logged.')) {
-                    voidOrder(activeOrder.id, 'Customer changed mind');
-                  }
+                  setVoidReason('Guest request / cancelled before service');
+                  setIsVoidModalOpen(true);
                 }}
                 title="Void Order"
                 className="p-1.5 text-slate-400 hover:text-rose-400 rounded hover:bg-slate-800"
@@ -685,13 +693,9 @@ export const POSView: React.FC = () => {
 
               <button
                 onClick={() => {
-                  const pct = prompt('Enter discount percentage (e.g. 10 for 10%):', '10');
-                  if (pct) {
-                    const num = parseFloat(pct);
-                    if (!isNaN(num) && num > 0) {
-                      applyOrderDiscount(num, 'Manager Courtesy Discount');
-                    }
-                  }
+                  setDiscountPercent(10);
+                  setDiscountReason('Manager Courtesy Discount');
+                  setIsDiscountModalOpen(true);
                 }}
                 disabled={activeOrder.items.length === 0}
                 className="py-2 px-1 bg-slate-800 hover:bg-slate-750 disabled:opacity-50 text-slate-200 text-xs font-semibold rounded border border-slate-700 flex flex-col items-center justify-center gap-0.5"
@@ -1041,6 +1045,157 @@ export const POSView: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL: Apply Discount */}
+      {isDiscountModalOpen && activeOrder && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 max-w-sm w-full shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <Percent className="w-4 h-4 text-amber-400" />
+                  <span>Apply Order Discount</span>
+                </h3>
+                <p className="text-xs text-slate-400">Order #{activeOrder.orderNumber}</p>
+              </div>
+              <button onClick={() => setIsDiscountModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3.5">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">Discount Percentage</label>
+                <div className="grid grid-cols-4 gap-1.5 mb-2">
+                  {[5, 10, 15, 20].map(pct => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setDiscountPercent(pct)}
+                      className={`py-1.5 text-xs font-mono font-bold rounded-lg border transition-all ${
+                        discountPercent === pct
+                          ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-xs'
+                          : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+                      }`}
+                    >
+                      {pct}%
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={discountPercent || ''}
+                    onChange={e => setDiscountPercent(Math.min(100, Math.max(1, parseFloat(e.target.value) || 0)))}
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-amber-400 focus:outline-none focus:border-amber-500"
+                  />
+                  <span className="text-xs text-slate-400 font-mono">%</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Discount Reason</label>
+                <input
+                  type="text"
+                  value={discountReason}
+                  onChange={e => setDiscountReason(e.target.value)}
+                  placeholder="e.g. VIP Hospitality, Service Delay"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs font-mono space-y-1">
+                <div className="flex justify-between text-slate-400">
+                  <span>Current Subtotal:</span>
+                  <span>KES {activeOrder.items.reduce((s, it) => s + (it.isComp ? 0 : it.totalPrice), 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-emerald-400 font-bold">
+                  <span>Discount ({discountPercent}%):</span>
+                  <span>-KES {Math.round(activeOrder.items.reduce((s, it) => s + (it.isComp ? 0 : it.totalPrice), 0) * (discountPercent / 100)).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                onClick={() => setIsDiscountModalOpen(false)}
+                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (discountPercent > 0) {
+                    applyOrderDiscount(discountPercent, discountReason);
+                    setIsDiscountModalOpen(false);
+                  }
+                }}
+                className="px-4 py-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg shadow-sm"
+              >
+                Apply Discount
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Void Order */}
+      {isVoidModalOpen && activeOrder && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-rose-900/60 rounded-xl p-5 max-w-sm w-full shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Void Order #{activeOrder.orderNumber}</h3>
+                  <p className="text-[11px] text-slate-400">{activeOrder.tableName || activeOrder.tabName}</p>
+                </div>
+              </div>
+              <button onClick={() => setIsVoidModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3">
+              <div className="text-xs text-rose-300 bg-rose-950/40 p-2.5 rounded-lg border border-rose-900/50">
+                Warning: Voiding this ticket cancels all items. Manager authorization and reason will be written to the audit log.
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Void Reason</label>
+                <input
+                  type="text"
+                  value={voidReason}
+                  onChange={e => setVoidReason(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                onClick={() => setIsVoidModalOpen(false)}
+                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
+              >
+                Keep Order
+              </button>
+              <button
+                onClick={() => {
+                  voidOrder(activeOrder.id, voidReason);
+                  setIsVoidModalOpen(false);
+                }}
+                className="px-4 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white rounded-lg shadow-sm"
+              >
+                Confirm Void
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL: Payment / Checkout with M-PESA Daraja & Room Charge */}
       {isCheckoutOpen && activeOrder && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
@@ -1157,7 +1312,13 @@ export const POSView: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => setTenderType('ROOM_CHARGE')}
+                    onClick={() => {
+                      setTenderType('ROOM_CHARGE');
+                      if (!selectedGuestStayId) {
+                        const activeStay = guestStays.find(s => s.status === 'CHECKED_IN');
+                        if (activeStay) setSelectedGuestStayId(activeStay.id);
+                      }
+                    }}
                     className={`py-2 px-1 text-xs font-semibold rounded flex flex-col items-center gap-1 transition-colors ${
                       tenderType === 'ROOM_CHARGE'
                         ? 'bg-indigo-600 text-white font-bold shadow-xs'

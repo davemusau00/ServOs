@@ -22,7 +22,8 @@ export const InventoryView: React.FC = () => {
     stockMovements,
     transferStock,
     declareWaste,
-    recordStockCountAdjustment
+    recordStockCountAdjustment,
+    showToast
   } = useServOS();
 
   const [activeTab, setActiveTab] = useState<'ITEMS' | 'MOVEMENTS' | 'AVT'>('ITEMS');
@@ -472,7 +473,9 @@ export const InventoryView: React.FC = () => {
                     if (transferQty > 0) {
                       transferStock(transferItemId, transferFromLoc, transferToLoc, transferQty, transferReason);
                       setIsTransferOpen(false);
-                      alert('Stock transfer completed and ledger updated!');
+                      showToast('Stock transfer completed and perpetual inventory ledger updated!', 'success');
+                    } else {
+                      showToast('Please enter a valid transfer quantity greater than 0.', 'error');
                     }
                   }}
                   className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded"
@@ -540,7 +543,9 @@ export const InventoryView: React.FC = () => {
                     if (wasteQty > 0) {
                       declareWaste(wasteItemId, wasteLocationId, wasteQty, wasteReason);
                       setIsWasteOpen(false);
-                      alert('Waste declared and posted to General Ledger Expense!');
+                      showToast('Waste declared and posted to General Ledger Expense!', 'success');
+                    } else {
+                      showToast('Please specify a waste quantity greater than 0.', 'error');
                     }
                   }}
                   className="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white rounded"
@@ -607,7 +612,7 @@ export const InventoryView: React.FC = () => {
                   onClick={() => {
                     recordStockCountAdjustment(stocktakeItemId, stocktakeLocId, stocktakeCounted, stocktakeNotes);
                     setIsStocktakeOpen(false);
-                    alert('Physical count recorded and variance movement created!');
+                    showToast('Physical count recorded and variance movement created in perpetual ledger!', 'success');
                   }}
                   className="px-5 py-2 text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded"
                 >

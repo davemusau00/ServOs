@@ -28,7 +28,8 @@ export const HotelPMSView: React.FC = () => {
     guestFolios,
     updateRoomStatus,
     postMinibarConsumption,
-    settleGuestFolio
+    settleGuestFolio,
+    showToast
   } = useServOS();
 
   const [selectedRoom, setSelectedRoom] = useState<HotelRoom | null>(null);
@@ -78,7 +79,7 @@ export const HotelPMSView: React.FC = () => {
 
     if (consumed.length > 0) {
       postMinibarConsumption(selectedRoom.id, consumed);
-      alert(`Minibar charges posted to Room ${selectedRoom.roomNumber} guest folio, inventory depleted, and replenishment task created!`);
+      showToast(`Minibar charges posted to Room ${selectedRoom.roomNumber} guest folio, inventory depleted, and replenishment task created!`, 'success');
     }
     setSelectedRoom(null);
   };
@@ -417,7 +418,7 @@ export const HotelPMSView: React.FC = () => {
                       onClick={() => {
                         settleGuestFolio(activeFolioModal.id, 'MPESA');
                         setActiveFolioModal(null);
-                        alert(`Folio settled via M-PESA! Guest checkout recorded.`);
+                        showToast('Folio settled via M-PESA! Guest checkout recorded and General Ledger updated.', 'success');
                       }}
                       className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded flex items-center gap-1"
                     >
@@ -428,7 +429,7 @@ export const HotelPMSView: React.FC = () => {
                       onClick={() => {
                         settleGuestFolio(activeFolioModal.id, 'CARD');
                         setActiveFolioModal(null);
-                        alert(`Folio settled via Corporate Card! Guest checkout recorded.`);
+                        showToast('Folio settled via Corporate Card! Guest checkout recorded and General Ledger updated.', 'success');
                       }}
                       className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded flex items-center gap-1"
                     >

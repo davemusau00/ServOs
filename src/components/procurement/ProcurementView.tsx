@@ -18,7 +18,8 @@ export const ProcurementView: React.FC = () => {
     purchaseOrders,
     stockItems,
     receivePurchaseOrder,
-    createPurchaseOrder
+    createPurchaseOrder,
+    showToast
   } = useServOS();
 
   const [activeTab, setActiveTab] = useState<'POS' | 'MATCH' | 'SUPPLIERS' | 'AGING'>('POS');
@@ -34,7 +35,7 @@ export const ProcurementView: React.FC = () => {
       { stockItemId: poItemId, quantity: poQty, unitPrice: poPrice }
     ]);
     setIsNewPoOpen(false);
-    alert('Purchase Order created and approved!');
+    showToast('Purchase Order created and approved!', 'success');
   };
 
   return (
@@ -150,7 +151,7 @@ export const ProcurementView: React.FC = () => {
                             <button
                               onClick={() => {
                                 receivePurchaseOrder(po.id);
-                                alert(`Goods received for ${po.poNumber}! Stock added to warehouse and AP invoice posted to General Ledger.`);
+                                showToast(`Goods received for ${po.poNumber}! Stock added to warehouse and AP invoice posted to General Ledger.`, 'success');
                               }}
                               className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded"
                             >

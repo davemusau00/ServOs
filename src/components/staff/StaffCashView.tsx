@@ -19,7 +19,8 @@ export const StaffCashView: React.FC = () => {
     tillSession,
     openTillSession,
     closeTillSession,
-    recordCashPaidInOut
+    recordCashPaidInOut,
+    showToast
   } = useServOS();
 
   const [activeTab, setActiveTab] = useState<'TILL' | 'STAFF' | 'TIPS'>('TILL');
@@ -330,7 +331,7 @@ export const StaffCashView: React.FC = () => {
                   onClick={() => {
                     closeTillSession(countedCash);
                     setIsCloseShiftOpen(false);
-                    alert('Shift session closed and drawer count reconciliation posted!');
+                    showToast('Shift session closed and drawer count reconciliation posted to General Ledger!', 'success');
                   }}
                   className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded"
                 >
@@ -400,7 +401,7 @@ export const StaffCashView: React.FC = () => {
                   onClick={() => {
                     recordCashPaidInOut(paidType === 'PAID_IN' ? 'IN' : 'OUT', paidAmount, paidReason);
                     setIsPaidInOutOpen(false);
-                    alert(`Cash ${paidType} recorded and expected drawer cash updated!`);
+                    showToast(`Cash ${paidType === 'PAID_IN' ? 'Paid In' : 'Paid Out'} recorded and expected drawer cash updated!`, 'success');
                   }}
                   className="px-5 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded"
                 >

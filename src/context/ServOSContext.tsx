@@ -93,6 +93,13 @@ interface ServOSContextType {
   applyOrderDiscount: (discountPct: number, reason: string) => void;
   voidOrder: (orderId: string, reason: string) => void;
   transferOrderToTable: (orderId: string, newTableId: string) => void;
+  bumpKdsTicket: (orderId: string) => void;
+  recallKdsTicket: (orderId: string) => void;
+
+  // In-app Toast notifications
+  toast: { message: string; type: 'success' | 'info' | 'error'; id: number } | null;
+  showToast: (message: string, type?: 'success' | 'info' | 'error') => void;
+  closeToast: () => void;
 
   // Payments & Cash Drawer
   processPayment: (
@@ -1111,6 +1118,21 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [edgeDevices] = useState<EdgeDevice[]>(initialEdgeDevices);
   const [lastEdgeEvent, setLastEdgeEvent] = useState<string | null>(null);
 
+  // In-app Toast Notifications
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error'; id: number } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
+    const id = Date.now();
+    setToast({ message, type, id });
+    setTimeout(() => {
+      setToast(curr => (curr && curr.id === id ? null : curr));
+    }, 4000);
+  };
+
+  const closeToast = () => {
+    setToast(null);
+  };
+
   // Load / initialize active table order on startup
   useEffect(() => {
     // create a default open table order for VIP-01 if none exists
@@ -1467,6 +1489,46 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return t;
       })
     );
+  };
+
+  const bumpKdsTicket = (orderId: string) => {
+    const ord = orders.find(o => o.id === orderId);
+    if (!ord) return;
+
+    const updated: Order = {
+      ...ord,
+      state: 'COMPLETED',
+      items: ord.items.map(it => ({
+        ...it,
+        state: 'SERVED' as const
+      }))
+    };
+
+    setOrders(prev => prev.map(o => (o.id === orderId ? updated : o)));
+    if (activeOrder?.id === orderId) {
+      setActiveOrder(updated);
+    }
+    showToast(`Ticket #${ord.orderNumber} (${ord.tableName || ord.tabName || 'Bar Tab'}) bumped to READY & notification dispatched!`, 'success');
+  };
+
+  const recallKdsTicket = (orderId: string) => {
+    const ord = orders.find(o => o.id === orderId);
+    if (!ord) return;
+
+    const updated: Order = {
+      ...ord,
+      state: 'SENT',
+      items: ord.items.map(it => ({
+        ...it,
+        state: 'ROUTED' as const
+      }))
+    };
+
+    setOrders(prev => prev.map(o => (o.id === orderId ? updated : o)));
+    if (activeOrder?.id === orderId) {
+      setActiveOrder(updated);
+    }
+    showToast(`Ticket #${ord.orderNumber} recalled to active KDS pass.`, 'info');
   };
 
   // Helper: execute stock depletion for an order
@@ -2726,6 +2788,11 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         applyOrderDiscount,
         voidOrder,
         transferOrderToTable,
+        bumpKdsTicket,
+        recallKdsTicket,
+        toast,
+        showToast,
+        closeToast,
         processPayment,
         tillSession,
         openTillSession,

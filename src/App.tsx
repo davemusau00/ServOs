@@ -11,6 +11,7 @@ import { AccountingView } from './components/accounting/AccountingView';
 import { ControlEngineView } from './components/control/ControlEngineView';
 import { StaffCashView } from './components/staff/StaffCashView';
 import { EdgeHardwareModal } from './components/edge/EdgeHardwareModal';
+import { ToastContainer } from './components/common/ToastContainer';
 
 const MainApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('pos');
@@ -73,6 +74,9 @@ const MainApp: React.FC = () => {
         isOpen={isHardwareModalOpen} 
         onClose={() => setIsHardwareModalOpen(false)} 
       />
+
+      {/* Global In-App Notifications Toast */}
+      <ToastContainer />
     </div>
   );
 };
