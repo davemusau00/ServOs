@@ -12,10 +12,19 @@ import { ControlEngineView } from './components/control/ControlEngineView';
 import { StaffCashView } from './components/staff/StaffCashView';
 import { EdgeHardwareModal } from './components/edge/EdgeHardwareModal';
 import { ToastContainer } from './components/common/ToastContainer';
-import { WifiOff, Database, RefreshCw } from 'lucide-react';
+import { WifiOff, Database, RefreshCw, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
 
 const MainApp: React.FC = () => {
-  const { isOffline, offlineQueueCount, syncOfflineQueue } = useServOS();
+  const { 
+    isOffline, 
+    offlineQueueCount, 
+    syncOfflineQueue,
+    userRole,
+    switchUserRole,
+    isTabAllowed,
+    userPermissions
+  } = useServOS();
+
   const [activeTab, setActiveTab] = useState<string>('pos');
   const [isHardwareModalOpen, setIsHardwareModalOpen] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -28,6 +37,13 @@ const MainApp: React.FC = () => {
       return false;
     }
   });
+
+  // Automatically ensure active tab is allowed under current role
+  useEffect(() => {
+    if (!isTabAllowed(activeTab)) {
+      setActiveTab('pos');
+    }
+  }, [userRole, activeTab, isTabAllowed]);
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed(prev => {
@@ -45,6 +61,61 @@ const MainApp: React.FC = () => {
     setIsSyncing(true);
     await syncOfflineQueue();
     setIsSyncing(false);
+  };
+
+  const renderActiveModule = () => {
+    // If not allowed, show RBAC Guard
+    if (!isTabAllowed(activeTab)) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-slate-950">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4 shadow-lg animate-bounce">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">
+            Module Restricted for {userRole} Role
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-md mb-6 font-mono">
+            Your current assigned access tier ({userRole}) does not have permissions to access the "{activeTab.toUpperCase()}" module.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => setActiveTab('pos')}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition-colors"
+            >
+              Return to POS View
+            </button>
+            <button
+              onClick={() => switchUserRole('Manager')}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-all"
+            >
+              <span>Elevate to Manager Role</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    switch (activeTab) {
+      case 'pos':
+        return <POSView />;
+      case 'kds':
+        return <KDSView />;
+      case 'hotel':
+        return <HotelPMSView />;
+      case 'inventory':
+        return <InventoryView />;
+      case 'procurement':
+        return <ProcurementView />;
+      case 'accounting':
+        return <AccountingView />;
+      case 'control':
+        return <ControlEngineView />;
+      case 'staff':
+        return <StaffCashView />;
+      default:
+        return <POSView />;
+    }
   };
 
   return (
@@ -91,14 +162,7 @@ const MainApp: React.FC = () => {
         )}
 
         <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden pb-14 md:pb-0">
-          {activeTab === 'pos' && <POSView />}
-          {activeTab === 'kds' && <KDSView />}
-          {activeTab === 'hotel' && <HotelPMSView />}
-          {activeTab === 'inventory' && <InventoryView />}
-          {activeTab === 'procurement' && <ProcurementView />}
-          {activeTab === 'accounting' && <AccountingView />}
-          {activeTab === 'control' && <ControlEngineView />}
-          {activeTab === 'staff' && <StaffCashView />}
+          {renderActiveModule()}
         </main>
       </div>
 

@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { GlobalSearchModal } from './GlobalSearchModal';
 import { OfflineQueueModal } from './OfflineQueueModal';
-import { EdgeDevice, EdgeDeviceStatus } from '../../types/servos';
+import { EdgeDevice, EdgeDeviceStatus, UserRole } from '../../types/servos';
 import { calculatePredictiveInventory, PredictiveStockAnalysis } from '../../utils/predictiveStock';
 
 interface HeaderProps {
@@ -56,6 +56,11 @@ export const Header: React.FC<HeaderProps> = ({
     employees,
     currentUser,
     setCurrentUser,
+    userRole,
+    setUserRole,
+    switchUserRole,
+    isTabAllowed,
+    availableRoles,
     isOffline,
     toggleOfflineMode,
     offlineQueueCount,
@@ -108,6 +113,8 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'staff', label: 'Staff & HR Hub', icon: Users, desc: 'Payroll, leave, shifts & till' }
   ];
 
+  const visibleNavLinks = navLinks.filter(link => isTabAllowed(link.id));
+
   const handleSelectTab = (tabId: string) => {
     setActiveTab(tabId);
     setMobileMenuOpen(false);
@@ -144,13 +151,13 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <>
       <header className="border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-40 select-none">
-        <div className="w-full max-w-full px-2.5 sm:px-4 h-14 sm:h-15 flex items-center justify-between gap-1.5 sm:gap-3">
+        <div className="w-full max-w-full px-2 sm:px-4 h-14 sm:h-15 flex items-center justify-between gap-1.5 sm:gap-3">
           {/* Zone 1: Mobile Hamburger & Desktop Sidebar Toggle + Active Outlet Selector */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0">
             {/* Mobile Hamburger Button (< md) */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-1.5 sm:p-2 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 focus:outline-none shrink-0"
+              className="md:hidden p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 focus:outline-none shrink-0"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -177,27 +184,26 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center font-black text-slate-950 text-xs shadow-sm shrink-0">
                 S
               </div>
-              <span className="text-sm font-bold tracking-tight text-white font-sans shrink-0 hidden xs:inline">
+              <span className="text-sm font-bold tracking-tight text-white font-sans shrink-0">
                 ServOS
               </span>
             </div>
 
-            <div className="h-5 w-[1px] bg-slate-700/60 hidden sm:block shrink-0" />
-
-            {/* Property & Outlet selector */}
-            <div className="flex items-center gap-1 sm:gap-1.5 text-xs min-w-0 shrink">
-              <span className="text-slate-400 font-medium truncate max-w-[90px] sm:max-w-[130px] hidden sm:inline">
+            {/* Property & Outlet selector (Desktop/Tablet >= md) */}
+            <div className="hidden md:flex items-center gap-1.5 text-xs min-w-0">
+              <div className="h-5 w-[1px] bg-slate-700/60 shrink-0" />
+              <span className="text-slate-400 font-medium truncate max-w-[120px] lg:max-w-[150px]">
                 {currentProperty.name}
               </span>
-              <span className="text-slate-600 hidden sm:inline">/</span>
-              <div className="relative group min-w-0 max-w-[110px] xs:max-w-[130px] sm:max-w-[160px] md:max-w-[180px]">
+              <span className="text-slate-600">/</span>
+              <div className="relative group min-w-0 max-w-[140px] lg:max-w-[180px]">
                 <select
                   value={currentOutlet.id}
                   onChange={e => {
                     const out = outlets.find(o => o.id === e.target.value);
                     if (out) setCurrentOutlet(out);
                   }}
-                  className="w-full bg-slate-800 border border-slate-700 text-amber-300 font-semibold rounded-lg px-2 sm:px-2.5 py-1 pr-5 sm:pr-6 text-[11px] sm:text-xs appearance-none cursor-pointer focus:outline-none focus:border-amber-400 hover:bg-slate-750 truncate"
+                  className="w-full bg-slate-800 border border-slate-700 text-amber-300 font-semibold rounded-lg px-2.5 py-1 pr-6 text-xs appearance-none cursor-pointer focus:outline-none focus:border-amber-400 hover:bg-slate-750 truncate"
                 >
                   {outlets.map(out => (
                     <option key={out.id} value={out.id}>
@@ -210,25 +216,22 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Zone 2: Central Global Search Bar */}
-          <div className="flex items-center justify-center flex-1 max-w-xs sm:max-w-sm md:max-w-md mx-1 sm:mx-2">
+          {/* Zone 2: Central Global Search Bar (Responsive Desktop & Mobile) */}
+          <div className="flex items-center justify-center flex-1 max-w-xs sm:max-w-sm md:max-w-md mx-1">
+            {/* Desktop / Tablet Search Input Button (>= sm) */}
             <button
               onClick={() => setSearchModalOpen(true)}
-              className="w-full flex items-center justify-between gap-2 px-2.5 sm:px-3 py-1.5 bg-slate-950/60 hover:bg-slate-800/80 border border-slate-750 hover:border-amber-500/50 rounded-xl text-slate-400 hover:text-slate-200 transition-all shadow-inner group"
+              className="hidden sm:flex w-full items-center justify-between gap-2 px-2.5 sm:px-3 py-1.5 bg-slate-950/60 hover:bg-slate-800/80 border border-slate-750 hover:border-amber-500/50 rounded-xl text-slate-400 hover:text-slate-200 transition-all shadow-inner group"
               title="Global Search (Press Cmd+K / Ctrl+K)"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Search className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform shrink-0" />
-                <span className="text-xs font-medium truncate text-left hidden sm:inline text-slate-300">
+                <span className="text-xs font-medium truncate text-left text-slate-300">
                   Search items, guests, folios, invoices...
-                </span>
-                <span className="text-xs font-medium truncate text-left sm:hidden text-slate-300">
-                  Quick search...
                 </span>
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                {/* Urgent Predictive Low-Stock Notification in Search Bar */}
                 {predictiveAlerts.length > 0 && (
                   <span 
                     onClick={(e) => {
@@ -252,46 +255,73 @@ export const Header: React.FC<HeaderProps> = ({
                 </kbd>
               </div>
             </button>
+
+            {/* Mobile Compact Search Trigger Button (< sm) */}
+            <button
+              onClick={() => setSearchModalOpen(true)}
+              className="sm:hidden flex items-center justify-center gap-1.5 px-2 py-1 bg-slate-950/60 hover:bg-slate-800 border border-slate-750 rounded-lg text-slate-300 text-xs shrink-0"
+              title="Global Search"
+            >
+              <Search className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[11px] font-medium">Search</span>
+              {predictiveAlerts.length > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              )}
+            </button>
           </div>
 
-          {/* Zone 3: Right Hardware Indicators, Offline Mode & User Switcher */}
+          {/* Zone 3: Right Role Switcher, Hardware Indicators & Offline Mode */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            {/* Visual Indicator: Connected Edge Hardware (Fiscal, Card Reader, Printers) */}
+            {/* RBAC ROLE SELECTOR (Admin / Manager / Server) */}
+            <div className="relative">
+              <div className="flex items-center">
+                <select
+                  value={userRole}
+                  onChange={e => switchUserRole(e.target.value as UserRole)}
+                  title={`Switch Active User Role (Current: ${userRole})`}
+                  className={`text-[11px] font-mono font-bold rounded-lg px-2 py-1 pr-5 appearance-none cursor-pointer focus:outline-none transition-all border shrink-0 ${
+                    userRole === 'Admin'
+                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25'
+                      : userRole === 'Manager'
+                      ? 'bg-purple-500/15 border-purple-500/40 text-purple-300 hover:bg-purple-500/25'
+                      : 'bg-blue-500/15 border-blue-500/40 text-blue-300 hover:bg-blue-500/25'
+                  }`}
+                >
+                  <option value="Admin" className="bg-slate-900 text-amber-300">Admin</option>
+                  <option value="Manager" className="bg-slate-900 text-purple-300">Manager</option>
+                  <option value="Server" className="bg-slate-900 text-blue-300">Server</option>
+                </select>
+                <ChevronDown className={`w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  userRole === 'Admin' ? 'text-amber-400' : userRole === 'Manager' ? 'text-purple-400' : 'text-blue-400'
+                }`} />
+              </div>
+            </div>
+
+            {/* Visual Indicator: Connected Edge Hardware */}
             <div className="relative">
               <button
                 onClick={onOpenHardwareModal}
                 onMouseEnter={() => setHardwareDropdownOpen(true)}
                 onMouseLeave={() => setHardwareDropdownOpen(false)}
                 title="Hardware status: Click to open Edge LAN Hardware Controller"
-                className={`flex items-center gap-1.5 px-2 py-1 text-xs font-mono rounded-lg border transition-all shrink-0 ${
+                className={`flex items-center gap-1 px-1.5 sm:px-2 py-1 text-xs font-mono rounded-lg border transition-all shrink-0 ${
                   hasHardwareError
-                    ? 'bg-rose-950/50 border-rose-600/60 text-rose-200 shadow-sm shadow-rose-950/50 ring-1 ring-rose-500/40'
+                    ? 'bg-rose-950/50 border-rose-600/60 text-rose-200 shadow-sm ring-1 ring-rose-500/40'
                     : hasHardwareOffline
                     ? 'bg-amber-950/30 border-amber-600/40 text-amber-300'
                     : 'bg-slate-800/90 border-slate-700/80 text-slate-300 hover:bg-slate-750 hover:border-slate-600'
                 }`}
               >
-                {/* 1. Fiscal Printer Icon Indicator */}
+                {/* Fiscal Printer */}
                 <span className="relative flex items-center" title={`Fiscal OSCU Box: ${fiscalDevice?.status || 'ONLINE'}`}>
                   <Receipt className={`w-3.5 h-3.5 ${getDeviceStatusColor(fiscalDevice)}`} />
                   <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${getDeviceStatusDot(fiscalDevice)}`} />
                 </span>
 
-                {/* 2. EMV Card Reader Icon Indicator */}
-                <span className="relative flex items-center" title={`EMV Card Terminal: ${cardReaderDevice?.status || 'ONLINE'}`}>
+                {/* EMV Card Reader */}
+                <span className="relative hidden xs:flex items-center" title={`EMV Card Terminal: ${cardReaderDevice?.status || 'ONLINE'}`}>
                   <CreditCard className={`w-3.5 h-3.5 ${getDeviceStatusColor(cardReaderDevice)}`} />
                   <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${getDeviceStatusDot(cardReaderDevice)}`} />
-                </span>
-
-                {/* 3. Thermal Receipt Printer Icon Indicator */}
-                <span className="relative flex items-center hidden xs:flex" title={`Receipt & Kitchen Printers: ${receiptPrinterDevice?.status || 'ONLINE'}`}>
-                  <Printer className={`w-3.5 h-3.5 ${getDeviceStatusColor(receiptPrinterDevice)}`} />
-                  <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${getDeviceStatusDot(receiptPrinterDevice)}`} />
-                </span>
-
-                {/* Label text */}
-                <span className="hidden xl:inline text-[11px] font-bold tracking-tight ml-0.5">
-                  {hasHardwareError ? `${errorDevices.length} HW FAULT` : `${onlineCount}/${edgeDevices.length} HW`}
                 </span>
 
                 {/* Overall status glowing dot */}
@@ -304,7 +334,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`} />
               </button>
 
-              {/* Hardware Quick Dropdown Preview on hover / click */}
+              {/* Hardware Quick Dropdown Preview on hover */}
               {hardwareDropdownOpen && (
                 <div 
                   className="absolute right-0 top-full mt-1.5 w-64 bg-slate-900 border border-slate-750 rounded-xl p-3 shadow-2xl z-50 animate-in fade-in duration-100 hidden sm:block"
@@ -351,35 +381,35 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center gap-1">
               <button
                 onClick={toggleOfflineMode}
-                title={isOffline ? 'Offline Mode Active - Click to reconnect or right-click to inspect' : 'Click to simulate network outage'}
-                className={`flex items-center justify-center gap-1 p-1.5 sm:px-2.5 sm:py-1 text-xs font-medium rounded-lg border transition-colors shrink-0 ${
+                title={isOffline ? 'Offline Mode Active' : 'Network Online'}
+                className={`flex items-center justify-center gap-1 p-1.5 sm:px-2 sm:py-1 text-xs font-medium rounded-lg border transition-colors shrink-0 ${
                   isOffline
                     ? 'bg-rose-950/70 border-rose-600/60 text-rose-300 animate-pulse'
                     : 'bg-slate-800/80 border-slate-700/60 text-slate-300 hover:bg-slate-700'
                 }`}
               >
                 {isOffline ? <WifiOff className="w-3.5 h-3.5" /> : <Wifi className="w-3.5 h-3.5 text-emerald-400" />}
-                <span className="hidden sm:inline font-mono">
+                <span className="hidden md:inline font-mono text-[11px]">
                   {isOffline ? 'OFFLINE' : 'ONLINE'}
                 </span>
               </button>
 
               <button
                 onClick={() => setOfflineQueueModalOpen(true)}
-                title="Open IndexedDB Offline Queue & Sync Engine"
+                title="Open IndexedDB Offline Queue"
                 className={`px-1.5 sm:px-2 py-1 text-xs font-mono font-bold rounded-lg flex items-center gap-1 shadow-sm shrink-0 transition-colors ${
                   offlineQueueCount > 0 
                     ? 'bg-amber-500 text-slate-950 hover:bg-amber-400' 
                     : 'bg-slate-800 text-slate-400 hover:bg-slate-750 hover:text-slate-200 border border-slate-700'
                 }`}
               >
-                <span className="hidden sm:inline">{offlineQueueCount > 0 ? 'SYNC' : 'QUEUE'}</span>
+                <span className="hidden lg:inline">{offlineQueueCount > 0 ? 'SYNC' : 'QUEUE'}</span>
                 <span>({offlineQueueCount})</span>
               </button>
             </div>
 
-            {/* Active Employee Switcher */}
-            <div className="relative group hidden md:block">
+            {/* Active Employee Switcher (Desktop >= lg) */}
+            <div className="relative group hidden lg:block">
               <select
                 value={currentUser.id}
                 onChange={e => {
@@ -458,6 +488,35 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
+            {/* Role Switcher in Mobile Drawer */}
+            <div className="p-3 bg-slate-950/40 border-b border-slate-800 space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono block">
+                Active User Role (Permissions)
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(['Admin', 'Manager', 'Server'] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => {
+                      switchUserRole(r);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-mono font-bold transition-all text-center ${
+                      userRole === r
+                        ? r === 'Admin'
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : r === 'Manager'
+                          ? 'bg-purple-500 text-white shadow-xs'
+                          : 'bg-blue-500 text-white shadow-xs'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Outlet Selector in Mobile Drawer */}
             <div className="p-3 bg-slate-950/40 border-b border-slate-800 space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono block">
@@ -482,12 +541,12 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            {/* Navigation Modules List */}
+            {/* Navigation Modules List (Filtered by isTabAllowed) */}
             <div className="flex-1 overflow-y-auto p-3 space-y-1">
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono px-2 py-1">
-                System Modules
+                Authorized Modules ({userRole})
               </div>
-              {navLinks.map(link => {
+              {visibleNavLinks.map(link => {
                 const Icon = link.icon;
                 const isActive = activeTab === link.id;
                 return (
@@ -526,8 +585,8 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Current Staff Switcher & Edge Footer */}
             <div className="p-3 bg-slate-950/80 border-t border-slate-800 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold">Active Staff Shift:</span>
-                <span className="text-[10px] font-mono text-emerald-400 font-bold">PIN VERIFIED</span>
+                <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold">Logged Employee:</span>
+                <span className="text-[10px] font-mono text-amber-400 font-bold">{userRole.toUpperCase()}</span>
               </div>
               <div className="relative">
                 <select
@@ -583,25 +642,27 @@ export const Header: React.FC<HeaderProps> = ({
           <span>Hotel</span>
         </button>
 
-        <button
-          onClick={() => handleSelectTab('control')}
-          className={`relative flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
-            activeTab === 'control' ? 'text-amber-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <ShieldAlert className="w-4 h-4 mb-0.5" />
-          <span>Control</span>
-          {totalControlAlerts > 0 && (
-            <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-slate-900 animate-pulse" />
-          )}
-        </button>
+        {isTabAllowed('control') && (
+          <button
+            onClick={() => handleSelectTab('control')}
+            className={`relative flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
+              activeTab === 'control' ? 'text-amber-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4 mb-0.5" />
+            <span>Control</span>
+            {totalControlAlerts > 0 && (
+              <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-slate-900 animate-pulse" />
+            )}
+          </button>
+        )}
 
         <button
           onClick={() => setMobileMenuOpen(true)}
           className="flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium text-slate-400 hover:text-slate-200"
         >
           <Menu className="w-4 h-4 mb-0.5" />
-          <span>More</span>
+          <span>Modules</span>
         </button>
       </nav>
     </>

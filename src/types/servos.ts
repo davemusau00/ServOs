@@ -452,6 +452,69 @@ export interface PurchaseOrder {
   supplierInvoiceNumber?: string;
 }
 
+// User Roles & Authentication Permissions Context
+export type UserRole = 'Admin' | 'Manager' | 'Server';
+
+export interface RolePermissions {
+  role: UserRole;
+  label: string;
+  description: string;
+  allowedTabs: string[];
+  canApproveDiscounts: boolean;
+  canVoidOrders: boolean;
+  canAdjustStock: boolean;
+  canManageProcurement: boolean;
+  canAccessAccounting: boolean;
+  canAccessControlEngine: boolean;
+  canManageStaffPayroll: boolean;
+  canAccessHardwareSettings: boolean;
+}
+
+export const ROLE_DEFINITIONS: Record<UserRole, RolePermissions> = {
+  Admin: {
+    role: 'Admin',
+    label: 'Executive Admin (Full Access)',
+    description: 'Complete system authority across ERP, Accounting, Control Engine, Procurement & Staff Hub',
+    allowedTabs: ['pos', 'kds', 'hotel', 'inventory', 'procurement', 'accounting', 'control', 'staff'],
+    canApproveDiscounts: true,
+    canVoidOrders: true,
+    canAdjustStock: true,
+    canManageProcurement: true,
+    canAccessAccounting: true,
+    canAccessControlEngine: true,
+    canManageStaffPayroll: true,
+    canAccessHardwareSettings: true,
+  },
+  Manager: {
+    role: 'Manager',
+    label: 'F&B Operations Manager',
+    description: 'Operational manager with supervisor authority, anomaly audits, discount approvals & stock transfers',
+    allowedTabs: ['pos', 'kds', 'hotel', 'inventory', 'procurement', 'accounting', 'control', 'staff'],
+    canApproveDiscounts: true,
+    canVoidOrders: true,
+    canAdjustStock: true,
+    canManageProcurement: true,
+    canAccessAccounting: true,
+    canAccessControlEngine: true,
+    canManageStaffPayroll: true,
+    canAccessHardwareSettings: true,
+  },
+  Server: {
+    role: 'Server',
+    label: 'Floor Server & Bartender',
+    description: 'POS floorplan, tables, room charge posting, and kitchen/bar KDS pass workflow',
+    allowedTabs: ['pos', 'kds', 'hotel'],
+    canApproveDiscounts: false,
+    canVoidOrders: false,
+    canAdjustStock: false,
+    canManageProcurement: false,
+    canAccessAccounting: false,
+    canAccessControlEngine: false,
+    canManageStaffPayroll: false,
+    canAccessHardwareSettings: false,
+  },
+};
+
 // Staff, HR, Roster, Leave & Payroll
 export type EmployeeRole = 
   | 'WAITER' 
@@ -461,6 +524,7 @@ export type EmployeeRole =
   | 'RECEPTIONIST' 
   | 'HOUSEKEEPER' 
   | 'MANAGER' 
+  | 'ADMIN'
   | 'FINANCE';
 
 export type ContractType = 'PERMANENT' | 'PROBATION' | 'CASUAL' | 'CONTRACT';

@@ -43,7 +43,10 @@ import {
   EdgeDeviceType,
   OfflineOperation,
   OfflineOperationStatus,
-  OfflineOperationType
+  OfflineOperationType,
+  UserRole,
+  RolePermissions,
+  ROLE_DEFINITIONS
 } from '../types/servos';
 import {
   initOfflineDb,
@@ -55,6 +58,14 @@ import {
 } from '../utils/offlineDb';
 
 interface ServOSContextType {
+  // Authentication & Role Permissions
+  userRole: UserRole;
+  setUserRole: (role: UserRole) => void;
+  switchUserRole: (role: UserRole) => void;
+  userPermissions: RolePermissions;
+  isTabAllowed: (tabId: string) => boolean;
+  availableRoles: UserRole[];
+
   // Tenancy
   organization: Organization;
   currentProperty: Property;
@@ -955,6 +966,30 @@ const initialPurchaseOrders: PurchaseOrder[] = [
 
 const initialEmployees: Employee[] = [
   {
+    id: 'emp-admin',
+    code: 'EMP-ADM-01',
+    name: 'Jane Muthoni',
+    email: 'jane.muthoni@grandnairobi.co.ke',
+    phone: '+254 722 999 000',
+    role: 'ADMIN',
+    department: 'General Management',
+    permissions: ['all'],
+    hourlyRate: 1200,
+    baseSalary: 280000,
+    commissionRate: 0.10,
+    contractType: 'PERMANENT',
+    nationalId: '19842109',
+    kraPin: 'A001928374E',
+    nssfNumber: 'NSSF-119283',
+    nhifNumber: 'NHIF-991823',
+    leaveBalance: 28,
+    leaveTaken: 2,
+    attendanceStatus: 'ON_DUTY',
+    bankName: 'NCBA Bank Kenya',
+    bankAccount: '11092837419',
+    mpesaDisbursementNumber: '+254 722 999 000'
+  },
+  {
     id: 'emp-dave',
     code: 'EMP-01',
     name: 'David Omondi',
@@ -1851,13 +1886,57 @@ const initialEdgeDevices: EdgeDevice[] = [
 ];
 
 export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Authentication & Role Permissions
+  const [userRole, setUserRoleState] = useState<UserRole>(() => {
+    try {
+      const saved = localStorage.getItem('servos_auth_role');
+      if (saved === 'Admin' || saved === 'Manager' || saved === 'Server') return saved as UserRole;
+    } catch {}
+    return 'Admin';
+  });
+
+  const availableRoles: UserRole[] = ['Admin', 'Manager', 'Server'];
+  const userPermissions: RolePermissions = ROLE_DEFINITIONS[userRole] || ROLE_DEFINITIONS.Admin;
+
+  const isTabAllowed = (tabId: string): boolean => {
+    return userPermissions.allowedTabs.includes(tabId);
+  };
+
   // Tenancy & Session
   const [organization] = useState<Organization>(initialOrg);
   const [currentProperty] = useState<Property>(initialProperty);
   const [outlets] = useState<Outlet[]>(initialOutlets);
   const [currentOutlet, setCurrentOutlet] = useState<Outlet>(initialOutlets[0]);
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
-  const [currentUser, setCurrentUser] = useState<Employee>(initialEmployees[0]);
+  const [currentUser, setCurrentUser] = useState<Employee>(() => {
+    const adminEmp = initialEmployees.find(e => e.role === 'ADMIN') || initialEmployees[0];
+    return adminEmp;
+  });
+
+  const switchUserRole = (newRole: UserRole) => {
+    setUserRoleState(newRole);
+    try {
+      localStorage.setItem('servos_auth_role', newRole);
+    } catch {}
+
+    if (newRole === 'Admin') {
+      const adminEmp = employees.find(e => e.role === 'ADMIN') || employees[0];
+      setCurrentUser(adminEmp);
+      showToast(`Logged in as Administrator (${adminEmp.name}) - Full system authority granted`, 'info');
+    } else if (newRole === 'Manager') {
+      const mgrEmp = employees.find(e => e.role === 'MANAGER') || employees[2];
+      setCurrentUser(mgrEmp);
+      showToast(`Logged in as Manager (${mgrEmp.name}) - Operations & Control authority`, 'info');
+    } else {
+      const serverEmp = employees.find(e => e.role === 'WAITER' || e.role === 'BARTENDER') || employees[1];
+      setCurrentUser(serverEmp);
+      showToast(`Logged in as Service Staff (${serverEmp.name}) - POS & Guest service`, 'info');
+    }
+  };
+
+  const setUserRole = (newRole: UserRole) => {
+    switchUserRole(newRole);
+  };
   const [leaveRequests, setLeaveRequests] = useState<StaffLeaveRequest[]>(initialLeaveRequests);
   const [shiftSchedules, setShiftSchedules] = useState<ShiftSchedule[]>(initialShiftSchedules);
   const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>(initialPayrollRuns);
@@ -4082,6 +4161,12 @@ export const ServOSProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return (
     <ServOSContext.Provider
       value={{
+        userRole,
+        setUserRole,
+        switchUserRole,
+        userPermissions,
+        isTabAllowed,
+        availableRoles,
         organization,
         currentProperty,
         outlets,

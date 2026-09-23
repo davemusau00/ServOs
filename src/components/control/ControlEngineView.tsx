@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useServOS } from '../../context/ServOSContext';
+import { ExecutiveAnalyticsDashboard } from './ExecutiveAnalyticsDashboard';
 import { 
   ShieldAlert, 
   Search, 
@@ -15,7 +16,8 @@ import {
   QrCode,
   UserCheck,
   Check,
-  X
+  X,
+  BarChart3
 } from 'lucide-react';
 
 export const ControlEngineView: React.FC = () => {
@@ -27,7 +29,7 @@ export const ControlEngineView: React.FC = () => {
     handleApproval
   } = useServOS();
 
-  const [activeTab, setActiveTab] = useState<'NORTHSTAR' | 'ALERTS' | 'APPROVALS'>('ALERTS');
+  const [activeTab, setActiveTab] = useState<'ANALYTICS' | 'NORTHSTAR' | 'ALERTS' | 'APPROVALS'>('ANALYTICS');
   const [searchQuery, setSearchQuery] = useState<string>('ORD-9020');
   const [traceResult, setTraceResult] = useState<any>(() => traceEvidence('ORD-9020'));
 
@@ -48,15 +50,24 @@ export const ControlEngineView: React.FC = () => {
         <div>
           <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
             <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
-            <span>Control Engine & North Star Audit Console</span>
+            <span>Control Engine & Executive Audit Hub</span>
           </h2>
           <p className="text-[11px] sm:text-xs text-slate-400 font-mono mt-0.5 line-clamp-1">
-            Full-Life Traceability from POS Order → KDS → M-PESA → eTIMS → Stock Depletion → General Ledger
+            Recharts Multi-Stream Revenue, RevPAR Occupancy, Beverage Yield & Full-Life North Star Audit
           </p>
         </div>
 
         {/* Tab switchers */}
         <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-none shrink-0">
+          <button
+            onClick={() => setActiveTab('ANALYTICS')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'ANALYTICS' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Executive Analytics</span>
+          </button>
           <button
             onClick={() => setActiveTab('NORTHSTAR')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
@@ -100,6 +111,8 @@ export const ControlEngineView: React.FC = () => {
 
       {/* Content Area (Safe padding for bottom bar on mobile: pb-28 lg:pb-8) */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-28 lg:pb-8">
+        {/* VIEW 0: Executive Analytics Dashboard (Recharts) */}
+        {activeTab === 'ANALYTICS' && <ExecutiveAnalyticsDashboard />}
         {/* VIEW 1: The North Star Traceability Console (Section 29) */}
         {activeTab === 'NORTHSTAR' && (
           <div className="space-y-6 max-w-5xl mx-auto">
